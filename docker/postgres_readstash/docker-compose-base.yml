@@ -1,0 +1,45 @@
+services:
+
+  postgres_readstash:
+    restart: always
+    build:
+      context: ../..
+      dockerfile: ./docker/postgres_readstash/Dockerfile
+    container_name: postgres_readstash
+    volumes:
+      - postgres_readstash_data_vol:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_READSTASH_USER" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    networks:
+      - local_network
+      - shared_network
+
+  postgres_object_storage_readstash:
+    restart: always
+    build:
+      context: ../..
+      dockerfile: ./docker/postgres_readstash/DockerfileObjStorage
+    container_name: postgres_object_storage_readstash
+    volumes:
+      - postgres_object_storage_readstash_data_vol:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_OBJECT_STORAGE_USER" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    networks:
+      - local_network
+      - shared_network
+
+networks:
+  shared_network:
+    external: true
+  local_network:
+    driver: bridge
+
+volumes:
+  postgres_readstash_data_vol: { }
+  postgres_object_storage_readstash_data_vol: { }

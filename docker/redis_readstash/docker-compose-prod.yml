@@ -1,0 +1,7 @@
+version: "3.9"
+
+services:
+
+  redis_readstash:
+    env_file:
+      - /opt/readstash/takethemenu.com.backend/.envs/.docker-compose-prod/.redis_readstash

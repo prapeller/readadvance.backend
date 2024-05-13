@@ -1,0 +1,23 @@
+services:
+
+  api_readstash:
+    build:
+      context: ../..
+      dockerfile: ./docker/api_readstash/Dockerfile
+    container_name: api_readstash
+    volumes:
+      - ../../api_readstash:/app/api_readstash
+    networks:
+      - shared_network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -H 'X-Request-Id: healthcheck' --fail -f http://$$API_READSTASH_HOST:$$API_READSTASH_PORT/$$DOCS_URL" ]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+    environment:
+      - TZ=UTC
+
+networks:
+  shared_network:
+    external: true
+

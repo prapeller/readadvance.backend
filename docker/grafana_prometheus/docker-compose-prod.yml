@@ -1,0 +1,11 @@
+services:
+
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  grafana:
+    env_file:
+      - /opt/takethemenu.com/takethemenu.com.backend/.envs/.docker-compose-prod/.grafana_readstash
+    ports:
+      - "3000:3000"

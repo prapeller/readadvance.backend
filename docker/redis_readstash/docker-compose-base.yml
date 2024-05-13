@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+
+  redis_readstash:
+    build:
+      context: ../..
+      dockerfile: ./docker/redis_readstash/Dockerfile
+    container_name: redis_readstash
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli", "ping", "|", "grep", "PONG" ]
+      interval: 3s
+      retries: 3
+    networks:
+      - shared_network
+
+networks:
+  shared_network:
+    external: true

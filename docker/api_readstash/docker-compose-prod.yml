@@ -1,0 +1,14 @@
+services:
+
+  api_readstash:
+    build:
+      args:
+        - BUILD_ENV=prod
+    command: /start_api_prod.sh
+    env_file:
+      - /opt/takethemenu.com/takethemenu.com.backend/.envs/.docker-compose-prod/.api_readstash
+      - /opt/takethemenu.com/takethemenu.com.backend/.envs/.docker-compose-prod/.postgres_readstash
+    expose:
+      - "8002"
+    ports:
+      - "8002:8002"

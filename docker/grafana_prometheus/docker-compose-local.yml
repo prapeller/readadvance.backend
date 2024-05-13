@@ -1,0 +1,15 @@
+services:
+
+  prometheus:
+    ports:
+      - "9090:9090"
+    expose:
+      - "9090"
+
+  grafana:
+    env_file:
+      - ../../.envs/.docker-compose-local/.grafana_readstash
+    ports:
+      - "3000:3000"
+    expose:
+      - "3000"

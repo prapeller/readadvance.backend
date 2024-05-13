@@ -1,0 +1,16 @@
+services:
+
+  api_readstash:
+    build:
+      args:
+        - BUILD_ENV=local
+    command: /start_api_local.sh
+    env_file:
+      - ../../.envs/.docker-compose-local/.api_readstash
+      - ../../.envs/.docker-compose-local/.postgres_readstash
+      - ../../.envs/.docker-compose-local/.postgres_object_storage
+      - ../../.envs/.docker-compose-local/.redis_readstash
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"

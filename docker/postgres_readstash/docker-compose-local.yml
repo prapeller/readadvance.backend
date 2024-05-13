@@ -1,0 +1,17 @@
+services:
+
+  postgres_readstash:
+    env_file:
+      - ../../.envs/.docker-compose-local/.postgres_readstash
+    ports:
+      - "5432:5432"
+    expose:
+      - "5432"
+
+  postgres_object_storage_readstash:
+    env_file:
+      - ../../.envs/.docker-compose-local/.postgres_object_storage
+    ports:
+      - "5433:5432"
+    expose:
+      - "5432"

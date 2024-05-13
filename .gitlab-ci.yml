@@ -1,0 +1,22 @@
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  tags:
+    - dev3
+  only:
+    - release
+  script:
+    - make build-prod
+
+deploy:
+  stage: deploy
+  tags:
+    - dev3
+  only:
+    - release
+  script:
+    - make down-prod
+    - make run-prod

@@ -1,0 +1,37 @@
+services:
+
+  prometheus:
+    restart: always
+    build:
+      context: ../..
+      dockerfile: ./docker/prometheus_grafana/DockerfilePrometheus
+    container_name: prometheus_banner
+    networks:
+      - local_network
+      - shared_network
+    environment:
+      - TZ=UTC
+
+  grafana:
+    restart: always
+    build:
+      context: ../..
+      dockerfile: ./docker/prometheus_grafana/DockerfileGrafana
+    volumes:
+      - grafana_vol
+    depends_on:
+      - prometheus
+    networks:
+      - local_network
+      - shared_network
+    environment:
+      - TZ=UTC
+
+networks:
+  local_network:
+    driver: bridge
+  shared_network:
+    external: true
+
+volumes:
+  grafana_vol: { }

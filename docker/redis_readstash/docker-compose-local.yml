@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+
+  redis_readstash:
+    env_file:
+      - ../../.envs/.docker-compose-local/.redis_readstash
+    expose:
+      - "6379"
+    ports:
+      - "6379:6379"

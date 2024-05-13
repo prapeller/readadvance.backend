@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'api_readstash'
+    static_configs:
+      - targets: ['api_readstash:8000']
