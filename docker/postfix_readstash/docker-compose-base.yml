@@ -1,0 +1,16 @@
+services:
+
+  postfix_readstash:
+    build:
+      context: ../..
+      dockerfile: ./docker/postfix_readstash/Dockerfile
+    container_name: postfix_readstash
+    restart: always
+    networks:
+      - shared_network
+    environment:
+      - TZ=UTC
+
+networks:
+  shared_network:
+    external: true
