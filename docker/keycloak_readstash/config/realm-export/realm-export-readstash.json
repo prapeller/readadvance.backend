@@ -53,8 +53,7 @@
         "composite": true,
         "composites": {
           "realm": [
-            "offline_access",
-            "uma_authorization"
+            "guest"
           ],
           "client": {
             "account": [
@@ -63,15 +62,6 @@
             ]
           }
         },
-        "clientRole": false,
-        "containerId": "readstash",
-        "attributes": {}
-      },
-      {
-        "id": "1a9e3c00-4493-4b10-87ad-0ed90ad96e2d",
-        "name": "uma_authorization",
-        "description": "${role_uma_authorization}",
-        "composite": false,
         "clientRole": false,
         "containerId": "readstash",
         "attributes": {}
@@ -98,15 +88,6 @@
         "id": "d17ca287-ea1e-48a3-97b3-77486b522cbf",
         "name": "admin",
         "description": "",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "readstash",
-        "attributes": {}
-      },
-      {
-        "id": "b344192d-b44a-4230-b2a4-83bcb6b7514f",
-        "name": "offline_access",
-        "description": "${role_offline-access}",
         "composite": false,
         "clientRole": false,
         "containerId": "readstash",
@@ -500,14 +481,6 @@
   "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister": false,
   "webAuthnPolicyPasswordlessAcceptableAaguids": [],
   "webAuthnPolicyPasswordlessExtraOrigins": [],
-  "scopeMappings": [
-    {
-      "clientScope": "offline_access",
-      "roles": [
-        "offline_access"
-      ]
-    }
-  ],
   "clientScopeMappings": {
     "account": [
       {
@@ -1439,14 +1412,14 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "oidc-full-name-mapper",
-            "saml-user-attribute-mapper",
-            "saml-role-list-mapper",
-            "oidc-usermodel-attribute-mapper",
-            "oidc-address-mapper",
-            "oidc-usermodel-property-mapper",
             "oidc-sha256-pairwise-sub-mapper",
-            "saml-user-property-mapper"
+            "oidc-address-mapper",
+            "oidc-usermodel-attribute-mapper",
+            "saml-user-property-mapper",
+            "saml-role-list-mapper",
+            "oidc-full-name-mapper",
+            "oidc-usermodel-property-mapper",
+            "saml-user-attribute-mapper"
           ]
         }
       },
@@ -1493,14 +1466,14 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "oidc-full-name-mapper",
             "oidc-address-mapper",
+            "saml-user-attribute-mapper",
+            "oidc-full-name-mapper",
+            "oidc-usermodel-property-mapper",
+            "saml-user-property-mapper",
             "oidc-sha256-pairwise-sub-mapper",
             "saml-role-list-mapper",
-            "saml-user-attribute-mapper",
-            "saml-user-property-mapper",
-            "oidc-usermodel-attribute-mapper",
-            "oidc-usermodel-property-mapper"
+            "oidc-usermodel-attribute-mapper"
           ]
         }
       },

@@ -3,6 +3,7 @@ import hmac
 import time
 from functools import wraps
 
+import backoff
 import fastapi as fa
 from fastapi_resource_server import OidcResourceServer, JwtDecodeOptions
 from sqlalchemy.exc import ProgrammingError
@@ -11,17 +12,17 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from core import config
 from core.config import settings
 from core.enums import UserRolesEnum, DBEnum
-from core.exceptions import UnauthorizedException, BadRequestException, NotFoundException
+from core.exceptions import UnauthorizedException
 from core.logger_config import setup_logger
 from db.models.user import UserModel
-from db.serializers.user import UserUpdateSerializer, UserCreateSerializer
+from db.serializers.user import UserUpdateSerializer
 from scripts.migrate import migrate
 from services.user_manager.user_manager import user_manager_dependency, UserManager
 
 logger = setup_logger('security')
 
 issuer = f"{settings.KEYCLOAK_BASE_URL}/realms/{settings.KEYCLOAK_REALM}"
-logger.debug(f'{issuer=}')
+logger.debug(f"Fetching oauth2_scheme: {issuer=}")
 
 oauth2_scheme = OidcResourceServer(
     issuer=issuer,
@@ -53,49 +54,20 @@ auth_head = auth_required([UserRolesEnum.head])
 auth_head_or_admin = auth_required([UserRolesEnum.head, UserRolesEnum.admin])
 
 
+@backoff.on_exception(backoff.constant,
+                      exception=ProgrammingError,
+                      on_backoff=migrate(db=DBEnum.postgres_readstash),
+                      max_tries=1)
 async def current_user_dependency(
         user_manager: UserManager = fa.Depends(user_manager_dependency),
         keycloak_data: dict = fa.Security(oauth2_scheme)) -> UserModel | None:
-    keycloak_uuid = keycloak_data.get('sub')
-    keycloak_email = keycloak_data.get('email')
-    keycloak_first_name = keycloak_data.get('given_name')
-    keycloak_last_name = keycloak_data.get('family_name')
-    keycloak_roles = keycloak_data.get('realm_access').get('roles')
-    keycloak_roles = [r for r in keycloak_roles if r in (ur for ur in UserRolesEnum)]
-    if not keycloak_roles:
-        raise UnauthorizedException(detail='User has no roles')
-    try:
-        user = await user_manager.get_user(uuid=keycloak_uuid)
-        user_is_the_same = (keycloak_email == user.email and
-                            keycloak_first_name == user.first_name and
-                            keycloak_last_name == user.last_name and
-                            set(keycloak_roles) == set(user.roles))
-        if not user_is_the_same:
-            user = await user_manager.update_user(user.uuid, UserUpdateSerializer(
-                email=keycloak_email,
-                first_name=keycloak_first_name,
-                last_name=keycloak_last_name,
-                roles=keycloak_roles,
-            ))
-            detail = f'updated {user=}'
-            logger.debug(detail)
-        return user
-    except NotFoundException:
-        user = await user_manager.clone_locally_from_kc_user(UserCreateSerializer(
-                uuid=keycloak_uuid,
-                email=keycloak_email,
-                first_name=keycloak_first_name,
-                last_name=keycloak_last_name,
-                roles=keycloak_roles,
-            ))
-        detail = f'created {user=}'
-        logger.debug(detail)
-        return user
-    except ProgrammingError:
-        migrate(db=DBEnum.postgres_readstash)
-        detail = 'Database was migrated. Please, try again.'
-        logger.error(detail)
-        raise BadRequestException(detail=detail)
+    user_ser = UserUpdateSerializer(
+        email=keycloak_data.get('email'),
+        first_name=keycloak_data.get('given_name'),
+        last_name=keycloak_data.get('family_name'),
+        roles=[r for r in keycloak_data.get('realm_access').get('roles') if r in (ur for ur in UserRolesEnum)],
+        uuid=keycloak_data.get('sub'))
+    return await user_manager.get_or_create_or_update_user(user_ser)
 
 
 async def generate_timestamp_hmac() -> tuple[int, str]:

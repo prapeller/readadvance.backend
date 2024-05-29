@@ -18,6 +18,11 @@ services:
       dockerfile: ./docker/keycloak_readstash/Dockerfile
     container_name: keycloak
     restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e \"GET /health/ready HTTP/1.1\r\nhost: http://localhost\r\nConnection: close\r\n\r\n\" >&3;grep \"HTTP/1.1 200 OK\" <&3" ]
+      interval: 10s
+      timeout: 60s
+      retries: 5
     networks:
       - shared_network
       - local_network
@@ -28,4 +33,4 @@ networks:
   local_network:
     driver: bridge
 volumes:
-  postgres_keycloak_readstash_data_vol: {}
+  postgres_keycloak_readstash_data_vol: { }

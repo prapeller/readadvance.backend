@@ -15,7 +15,7 @@ from db.serializers.file_storage import (
     FileStorageReadAsyncCachedSerializer,
     FileIndexReadAsyncCachedSerializer,
 )
-from services.cache.cache import RedisCache, redis_cache_dependency
+from services.cache.cache import RedisCache
 from services.postgres.repository import (
     SqlAlchemyRepositorySync,
     SqlAlchemyRepositoryAsync,
@@ -34,13 +34,12 @@ class FileManager():
                  object_storage_repo_sync: SqlAlchemyRepositorySync,
                  index_repo_async: SqlAlchemyRepositoryAsync,
                  object_storage_repo_async: SqlAlchemyRepositoryAsync,
-                 cache: RedisCache,
                  ):
         self.index_repo_sync = index_repo_sync
         self.object_storage_repo_sync = object_storage_repo_sync
         self.index_repo_async = index_repo_async
         self.object_storage_repo_async = object_storage_repo_async
-        self.cache = cache
+        self.cache = RedisCache()
 
     def _raise_if_file_index_name_exists(self, file_name):
         file_index = self.index_repo_sync.session.query(FileIndexModel).filter_by(name=file_name).first()
@@ -161,12 +160,10 @@ async def file_manager_dependency(
         object_storage_repo_sync: SqlAlchemyRepositorySync = fa.Depends(sqlalchemy_repo_obj_storage_sync_dependency),
         index_repo_async: SqlAlchemyRepositoryAsync = fa.Depends(sqlalchemy_repo_async_dependency),
         object_storage_repo_async: SqlAlchemyRepositoryAsync = fa.Depends(sqlalchemy_repo_obj_storage_async_dependency),
-        cache: RedisCache = fa.Depends(redis_cache_dependency),
 ):
     return FileManager(
         index_repo_sync=index_repo_sync,
         object_storage_repo_sync=object_storage_repo_sync,
         index_repo_async=index_repo_async,
         object_storage_repo_async=object_storage_repo_async,
-        cache=cache,
     )

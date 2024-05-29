@@ -4,9 +4,8 @@ import pydantic as pd
 from core.security import auth_head, current_user_dependency
 from db.models.user import UserModel
 from db.serializers.user import UserReadSerializer, UserUpdateSerializer, UserCreateSerializer
-from services.keycloak.keycloak import kc_admin_dependency, KCAdmin
-from services.user_manager.user_manager import UserManager, user_manager_dependency, user_manager_dependency
-
+from services.keycloak.keycloak import KCAdmin
+from services.user_manager.user_manager import UserManager, user_manager_dependency
 router = fa.APIRouter()
 
 
@@ -66,11 +65,10 @@ async def users_read(
 @router.get("/fetch-from-keycloack/my-roles")
 @auth_head
 async def users_fetch_from_keycloak_my_roles(
-        kc_admin: KCAdmin = fa.Depends(kc_admin_dependency),
         current_user: UserModel = fa.Depends(current_user_dependency),
 ):
     """fetches from keycloack realm-level role-mappings of current user"""
-    return await kc_admin.get_user_roles_async(current_user.uuid)
+    return await KCAdmin().get_user_roles(current_user.uuid)
 
 
 @router.post("/", response_model=UserReadSerializer)

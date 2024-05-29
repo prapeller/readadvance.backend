@@ -65,3 +65,10 @@ class UnprocessableEntityException(fa.HTTPException):
             status_code=fa.status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=ResponseDetailEnum.unprocessable_entity if detail is None else detail,
         )
+
+class KeycloakRequestException(fa.HTTPException):
+    def __init__(self, detail=None):
+        super().__init__(
+            status_code=fa.status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='keycloak exception' if detail is None else detail,
+        )

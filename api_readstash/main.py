@@ -3,10 +3,7 @@ from contextlib import asynccontextmanager
 import fastapi as fa
 import uvicorn
 from fastapi.responses import ORJSONResponse
-from redis.asyncio import Redis
 
-import services.cache.cache
-import services.keycloak.keycloak
 from api.v1.auth import (
     postgres as v1_auth_postgres,
     users as v1_auth_users,
@@ -15,30 +12,28 @@ from api.v1.auth import (
 from api.v1.public import (
     languages as v1_public_languages,
 )
+from core import config
 from core.config import settings
 from core.middlewares import CatchAssertionErrorMiddleware
 from core.security import current_user_dependency, VerifyHMACMiddleware
 from db import init_models
-from scripts.recreate import recreate_languages, recreate_levels, recreate_head_user_in_kc
+from scripts.recreate import recreate_languages, recreate_levels, recreate_test_users
 from services.cache.cache import RedisCache
-from services.keycloak.keycloak import KCAdmin, init_kc_admin
 
 
 @asynccontextmanager
 async def lifespan(app: fa.FastAPI):
     # startup
-    init_kc_admin()
-    services.cache.cache.redis_cache = RedisCache(Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT))
 
     init_models()
     await recreate_languages()
     await recreate_levels()
-
-    services.keycloak.keycloak.kc_admin = KCAdmin()
-    await recreate_head_user_in_kc()
+    if config.DEBUG and config.DOCKER:
+        await recreate_test_users()
 
     # shutdown
     yield
+    await RedisCache().close()
 
 
 app = fa.FastAPI(

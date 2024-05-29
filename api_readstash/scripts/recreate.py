@@ -1,4 +1,3 @@
-from core.config import settings
 from core.constants import LANGUAGES_DICT, LEVEL_SYSTEM_ORDERS_CODES
 from core.enums import LanguagesISO2NamesEnum, UserRolesEnum, LevelOrderEnum, LevelSystemNamesEnum
 from db import SessionLocalAsync
@@ -6,31 +5,30 @@ from db.models.language import LanguageModel
 from db.models.level import LevelModel
 from db.serializers.language import LanguageCreateSerializer
 from db.serializers.level import LevelCreateSerializer
-from db.serializers.user import UserCreateSerializer, UserUpdateSerializer
-from services.keycloak.keycloak import KCAdmin, kc_admin_dependency
+from db.serializers.user import UserCreateSerializer
 from services.postgres.repository import SqlAlchemyRepositoryAsync
+from services.user_manager.user_manager import UserManager
+
+test_users = [
+    {
+        'email': 'head_test@mail.ru',
+        'name': 'head_test',
+        'password': 'test',
+        'roles': [UserRolesEnum.head],
+    },
+]
 
 
-async def recreate_head_user_in_kc():
-    """recreates head user in keycloak if it does not exist or sync with kc if it does exist with the same email"""
-
-    head_email = settings.API_HEAD_USER_EMAIL
-    head_name = settings.API_HEAD_USER_NAME
-    head_password = settings.API_HEAD_USER_PASSWORD
-    head_roles = [UserRolesEnum.head]
-
-    kc_admin_async: KCAdmin = kc_admin_dependency()
-    kc_user = await kc_admin_async.get_user_by_email_async(head_email)
-
-    if kc_user is None:
-        kc_user = await kc_admin_async.create_user_async(
-            user_ser=UserCreateSerializer(email=head_email, first_name=head_name, last_name=''))
-        await kc_admin_async.set_password_async(kc_user.uuid, head_password)
-    elif kc_user:
-        await kc_admin_async.update_user_names_async(kc_user.uuid,
-                                                     UserUpdateSerializer(first_name=head_name, last_name=''))
-        await kc_admin_async.update_user_roles_async(kc_user.uuid, UserUpdateSerializer(roles=head_roles))
-    await kc_admin_async.verify_async(kc_user.uuid)
+async def recreate_test_users():
+    """
+    Recreate test users in Keycloak and Local DB.
+    """
+    async with SessionLocalAsync() as session:
+        repo_write = SqlAlchemyRepositoryAsync(session)
+        user_manager = UserManager(repo_write)
+        for user in test_users:
+            user_ser = UserCreateSerializer(email=user['email'], first_name=user['name'], roles=user['roles'])
+            await user_manager.get_or_create_or_update_user(user_ser, password=user['password'])
 
 
 async def recreate_languages():

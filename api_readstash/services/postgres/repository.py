@@ -270,13 +270,16 @@ class SqlAlchemyRepositoryAsync(AbstractRepository):
         await self.session.refresh(obj)
         return obj
 
-    async def get(self, Model: type[sa_Model], **kwargs) -> sa_Model | None:
+    async def get(self, Model: type[sa_Model], raise_if_not_found=False, **kwargs) -> sa_Model | None:
         stmt = select(Model).filter_by(**kwargs)
         result = await self.session.execute(stmt)
         obj = result.scalars().first()
+        if raise_if_not_found:
+            if obj is None:
+                raise NotFoundException(f"{Model} not found")
         return obj
 
-    async def list_filtered(self, Model: type[sa_Model], exclude_none:bool=True, **kwargs) -> list[sa_Model]:
+    async def list_filtered(self, Model: type[sa_Model], exclude_none: bool = True, **kwargs) -> list[sa_Model]:
         kwargs_local = kwargs.copy()
         if exclude_none:
             for k, v in kwargs.items():

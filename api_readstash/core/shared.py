@@ -11,6 +11,17 @@ from core.exceptions import NotValidPlaceholdersException, UnprocessableEntityEx
 from db.models.file_storage import FileIndexModel
 
 
+def singleton_decorator(cls):
+    instances = {}
+
+    def get_instance(*args, **kwargs):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+
+    return get_instance
+
+
 async def custom_serialize(
         obj: dict | bytes | str | Enum | list | None) -> dict | list | str | int | float | dt.datetime | None:
     if obj is None \
