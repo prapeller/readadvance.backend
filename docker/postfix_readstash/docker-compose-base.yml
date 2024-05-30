@@ -6,6 +6,9 @@ services:
       dockerfile: ./docker/postfix_readstash/Dockerfile
     container_name: postfix_readstash
     restart: always
+#    dns:
+#      - 8.8.8.8  # Google's
+#      - 1.1.1.1  # Cloudflare's
     networks:
       - shared_network
     environment:

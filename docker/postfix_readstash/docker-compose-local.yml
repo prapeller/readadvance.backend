@@ -1,8 +1,5 @@
 services:
 
   postfix_readstash:
-    dns:
-      - 8.8.8.8  # Google's DNS
-      - 1.1.1.1  # Cloudflare's DNS
     ports:
       - "25:25"

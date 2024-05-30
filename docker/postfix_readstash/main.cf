@@ -1,40 +1,38 @@
-smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+debug_peer_level = 4
 biff = no
 append_dot_mydomain = no
 readme_directory = no
 
+myhostname = localhost
+mydomain = example.com
+mydestination = $myhostname, $mydomain, localhost, localhost.$mydomain
+myorigin = /etc/mailname
+mynetworks = 127.0.0.0/8
+
 # TLS parameters
+smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+smtpd_use_tls=yes
+smtpd_tls_loglevel = 4
 smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
 smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
-smtpd_use_tls=yes
 smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
-smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
-
-myhostname = example.com
-mydomain = example.com
-
-alias_maps = hash:/etc/aliases
-alias_database = hash:/etc/aliases
-myorigin = /etc/mailname
-mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
-relayhost =
-mynetworks = 127.0.0.0/8
-mailbox_size_limit = 0
-recipient_delimiter = +
-inet_interfaces = all
-inet_protocols = all
 
 smtp_use_tls = yes
 smtp_tls_security_level = may
 smtp_tls_note_starttls_offer = yes
 smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+relayhost =
+mailbox_size_limit = 0
+recipient_delimiter = +
+inet_interfaces = all
+inet_protocols = all
 
 # Additional settings
 compatibility_level = 3.6
 maillog_file = /dev/stdout
-debug_peer_level = 4
 smtp_host_lookup = dns
 smtp_address_preference = ipv4
-
-debug_peer_list = mail.ru
-smtpd_tls_loglevel = 4
