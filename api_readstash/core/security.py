@@ -15,7 +15,7 @@ from core.enums import UserRolesEnum, DBEnum
 from core.exceptions import UnauthorizedException
 from core.logger_config import setup_logger
 from db.models.user import UserModel
-from db.serializers.user import UserUpdateSerializer
+from db.serializers.user import UserCreateSerializer
 from scripts.migrate import migrate
 from services.user_manager.user_manager import user_manager_dependency, UserManager
 
@@ -61,13 +61,27 @@ auth_head_or_admin = auth_required([UserRolesEnum.head, UserRolesEnum.admin])
 async def current_user_dependency(
         user_manager: UserManager = fa.Depends(user_manager_dependency),
         keycloak_data: dict = fa.Security(oauth2_scheme)) -> UserModel | None:
-    user_ser = UserUpdateSerializer(
+    user_ser = UserCreateSerializer(
+        uuid=keycloak_data.get('sub'),
         email=keycloak_data.get('email'),
         first_name=keycloak_data.get('given_name'),
         last_name=keycloak_data.get('family_name'),
         roles=[r for r in keycloak_data.get('realm_access').get('roles') if r in (ur for ur in UserRolesEnum)],
-        uuid=keycloak_data.get('sub'))
-    return await user_manager.get_or_create_or_update_user(user_ser)
+    )
+
+    user = await user_manager.repo_write.get(UserModel, raise_if_not_found=False, email=user_ser.email)
+    if user is None:
+        return await user_manager.repo_write.create(UserModel, user_ser)
+    kc_user_is_the_same = (
+            user_ser.email == user.email and
+            user_ser.first_name == user.first_name and
+            user_ser.last_name == user.last_name and
+            user_ser.roles == user.roles
+    )
+    if kc_user_is_the_same:
+        return user
+    else:
+        return await user_manager.get_or_create_or_update_user(user_ser)
 
 
 async def generate_timestamp_hmac() -> tuple[int, str]:

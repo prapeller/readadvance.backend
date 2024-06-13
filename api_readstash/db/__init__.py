@@ -14,9 +14,10 @@ def init_models():
     from db.models import language  # noqa
     from db.models import level  # noqa
     from db.models import phrase  # noqa
-    from db.models import readstash_text  # noqa
+    from db.models import text  # noqa
     from db.models import user  # noqa
     from db.models import word  # noqa
+    from db.models import periodic_task  # noqa
 
 
 # postgres_readstash
@@ -77,7 +78,7 @@ SessionLocalObjStorageReadSync = sessionmaker(autocommit=False, autoflush=False,
 POSTGRES_OBJ_STORAGE_READ_URL_ASYNC = f"postgresql+asyncpg://{POSTGRES_OBJ_STORAGE_READ_URL_POSTFIX}"
 engine_obj_storage_read_async = create_async_engine(POSTGRES_OBJ_STORAGE_READ_URL_ASYNC, future=True)
 SessionLocalObjStorageReadAsync = sessionmaker(engine_obj_storage_read_async, class_=AsyncSession,  # noqa
-                                           expire_on_commit=False)
+                                               expire_on_commit=False)
 
 Base = declarative_base()
 BaseObjStorage = declarative_base()

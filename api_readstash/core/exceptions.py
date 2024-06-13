@@ -66,9 +66,48 @@ class UnprocessableEntityException(fa.HTTPException):
             detail=ResponseDetailEnum.unprocessable_entity if detail is None else detail,
         )
 
+
 class KeycloakRequestException(fa.HTTPException):
     def __init__(self, detail=None):
         super().__init__(
             status_code=fa.status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail='keycloak exception' if detail is None else detail,
+        )
+
+
+class ChatgptException(fa.HTTPException):
+    def __init__(self, detail=None):
+        super().__init__(
+            status_code=fa.status.HTTP_400_BAD_REQUEST,
+            detail=ResponseDetailEnum.unauthorized if detail is None else detail,
+        )
+
+
+# class WordManagerException(fa.HTTPException):
+#     def __init__(self, detail=None):
+#         super().__init__(
+#             status_code=fa.status.HTTP_400_BAD_REQUEST,
+#             detail=ResponseDetailEnum.unauthorized if detail is None else detail,
+#         )
+#
+# class TextManagerException(fa.HTTPException):
+#     def __init__(self, detail=None):
+#         super().__init__(
+#             status_code=fa.status.HTTP_400_BAD_REQUEST,
+#             detail=ResponseDetailEnum.unauthorized if detail is None else detail,
+#         )
+
+
+class WordIdentifierException(fa.HTTPException):
+    def __init__(self, detail=None):
+        super().__init__(
+            status_code=fa.status.HTTP_400_BAD_REQUEST,
+            detail=ResponseDetailEnum.unauthorized if detail is None else detail,
+        )
+
+class TextIdentifierException(fa.HTTPException):
+    def __init__(self, detail=None):
+        super().__init__(
+            status_code=fa.status.HTTP_400_BAD_REQUEST,
+            detail=ResponseDetailEnum.unauthorized if detail is None else detail,
         )

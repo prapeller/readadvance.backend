@@ -23,7 +23,9 @@ async def words_list(
         current_user: UserModel = fa.Depends(current_user_dependency),
 ):
     """list all words for a language"""
-    return await word_manager.list_filtered_paginated(word_params, pagination_params, order_by, order)
+    return await word_manager.list_filtered_paginated_words(word_params,
+                                                            pagination_params,
+                                                            order_by, order)
 
 
 @router.get("/my",
@@ -37,11 +39,11 @@ async def words_list_my(
         order: OrderEnum = OrderEnum.desc,
         current_user: UserModel = fa.Depends(current_user_dependency),
 ):
-    return await word_manager.list_users_words(current_user.uuid,
-                                               word_params,
-                                               pagination_params,
-                                               order_by, order,
-                                               status)
+    return await word_manager.list_filtered_paginated_users_words_by_status(current_user.uuid,
+                                                                            word_params,
+                                                                            pagination_params,
+                                                                            order_by, order,
+                                                                            status)
 
 
 @router.get("/{word_uuid}",
@@ -56,7 +58,6 @@ async def words_read(
 
 
 @router.post("/add-to-my/{word_uuid}")
-@auth_head_or_admin
 async def words_add_to_my_with_status(
         word_uuid: pd.UUID4,
         status: UserWordStatusEnum,
@@ -76,10 +77,10 @@ async def words_create(
         current_user: UserModel = fa.Depends(current_user_dependency),
 ):
     """create word by admin"""
-    return await word_manager.create_word(gpt_model, word_ser)
+    return await word_manager.create_word(word_ser, gpt_model)
 
 
-@router.put("/identify-word-level/{word_uuid}", response_model=WordReadSerializer)
+@router.put("/identify-level/{word_uuid}", response_model=WordReadSerializer)
 @auth_head_or_admin
 async def words_identify_word_level(
         word_uuid: pd.UUID4,

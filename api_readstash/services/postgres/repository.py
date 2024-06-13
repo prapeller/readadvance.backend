@@ -19,18 +19,18 @@ from db import (
     SessionLocalAsync, SessionLocalObjStorageAsync, SessionLocalObjStorageSync, SessionLocalReadSync,
     SessionLocalReadAsync,
 )
-from db.models.association import WordFileUserStatusAssoc
+from db.models.association import UserWordStatusFileAssoc, UserTextStatusAssoc, WordTranslationAssoc
 from db.models.file_storage import FileStorageModel, FileIndexModel
 from db.models.grammar import GrammarModel
 from db.models.language import LanguageModel
 from db.models.level import LevelModel
 from db.models.phrase import PhraseModel
-from db.models.readstash_text import TextModel
+from db.models.text import TextModel
 from db.models.user import UserModel
 from db.models.word import WordModel
 
 sa_Model = typing.Union[
-    WordFileUserStatusAssoc,
+    UserWordStatusFileAssoc, UserTextStatusAssoc, WordTranslationAssoc,
     FileStorageModel, FileIndexModel,
     GrammarModel,
     LanguageModel,
@@ -43,6 +43,13 @@ sa_Model = typing.Union[
 
 logger = setup_logger(log_name=Path(__file__).resolve().parent.stem)
 
+
+def get_serializer_data(serializer: pd_Model | dict, exclude_none: bool, exclude_unset: bool) -> dict:
+    if isinstance(serializer, dict):
+        serializer_data = serializer
+    else:
+        serializer_data = my_jsonable_encoder(serializer, exclude_none=exclude_none, exclude_unset=exclude_unset)
+    return serializer_data
 
 class AbstractRepository(abc.ABC):
     @abc.abstractmethod
@@ -100,17 +107,9 @@ class SqlAlchemyRepositorySync(AbstractRepository):
             self.session.delete(obj)
         self._try_commit_session()
 
-    @staticmethod
-    def _get_serializer_data(serializer: pd_Model | dict, exclude_none: bool, exclude_unset: bool) -> dict:
-        if isinstance(serializer, dict):
-            serializer_data = serializer
-        else:
-            serializer_data = my_jsonable_encoder(serializer, exclude_none=exclude_none, exclude_unset=exclude_unset)
-        return serializer_data
-
     def create(self, Model: Type[sa_Model], serializer: pd_Model | dict,
                exclude_none=True, exclude_unset=True) -> sa_Model:
-        serializer_data = self._get_serializer_data(serializer, exclude_none, exclude_unset)
+        serializer_data = get_serializer_data(serializer, exclude_none, exclude_unset)
         existing_obj = self.session.query(Model).filter_by(**serializer_data).first()
         if existing_obj is not None:
             raise AlreadyExistsException
@@ -167,7 +166,7 @@ class SqlAlchemyRepositorySync(AbstractRepository):
 
     def get_or_create(self, Model: Type[sa_Model], serializer: pd_Model | dict,
                       exclude_none=True, exclude_unset=True) -> tuple[bool, sa_Model]:
-        serializer_data = self._get_serializer_data(serializer, exclude_none, exclude_unset)
+        serializer_data = get_serializer_data(serializer, exclude_none, exclude_unset)
         is_created = False
         obj = self.session.query(Model).filter_by(**serializer_data).first()
         if obj is None:
@@ -180,7 +179,7 @@ class SqlAlchemyRepositorySync(AbstractRepository):
                     exclude_none=True, exclude_unset=True) -> list[sa_Model]:
         objs = []
         for serializer in serializers:
-            serializer_data = self._get_serializer_data(serializer, exclude_none, exclude_unset)
+            serializer_data = get_serializer_data(serializer, exclude_none, exclude_unset)
             obj = Model(**serializer_data)
             self.session.add(obj)
             objs.append(obj)
@@ -191,7 +190,7 @@ class SqlAlchemyRepositorySync(AbstractRepository):
                            exclude_none=True, exclude_unset=True) -> list[sa_Model]:
         objs = []
         for serializer in serializers:
-            serializer_data = self._get_serializer_data(serializer, exclude_none, exclude_unset)
+            serializer_data = get_serializer_data(serializer, exclude_none, exclude_unset)
             obj = self.session.query(Model).filter_by(**serializer_data).first()
             if obj is None:
                 obj = Model(**serializer_data)
@@ -202,7 +201,7 @@ class SqlAlchemyRepositorySync(AbstractRepository):
 
     def update(self, obj: sa_Model, serializer: pd_Model | dict,
                exclude_none=True, exclude_unset=True) -> sa_Model:
-        serializer_data = self._get_serializer_data(serializer, exclude_none, exclude_unset)
+        serializer_data = get_serializer_data(serializer, exclude_none, exclude_unset)
 
         fields_to_update = [x for x in serializer_data if hasattr(obj, x)]
         for field in fields_to_update:
@@ -213,7 +212,7 @@ class SqlAlchemyRepositorySync(AbstractRepository):
 
     def update_many(self, objs: list[sa_Model], serializer: pd_Model | dict,
                     exclude_none=True, exclude_unset=True) -> list[sa_Model]:
-        serializer_data = self._get_serializer_data(serializer, exclude_none, exclude_unset)
+        serializer_data = get_serializer_data(serializer, exclude_none, exclude_unset)
         for obj in objs:
             fields_to_update = [x for x in serializer_data if hasattr(obj, x)]
             for field in fields_to_update:
@@ -255,20 +254,19 @@ class SqlAlchemyRepositoryAsync(AbstractRepository):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.session.close()
 
-    async def create(self, Model: type[sa_Model], serializer) -> sa_Model:
-        serializer_data = serializer.model_dump(exclude_unset=True)
+    async def create(self, Model: type[sa_Model], serializer, exclude_unset=True, exclude_none=True) -> sa_Model:
+        serializer_data = get_serializer_data(serializer, exclude_unset=exclude_unset, exclude_none=exclude_none)
         obj = Model(**serializer_data)
         self.session.add(obj)
         try:
             await self.session.commit()
+            await self.session.refresh(obj)
+            return obj
         except IntegrityError as e:
             await self.session.rollback()
             detail = str(e)
             logger.error(detail)
             raise fa.HTTPException(status_code=fa.status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
-
-        await self.session.refresh(obj)
-        return obj
 
     async def get(self, Model: type[sa_Model], raise_if_not_found=False, **kwargs) -> sa_Model | None:
         stmt = select(Model).filter_by(**kwargs)
@@ -276,10 +274,10 @@ class SqlAlchemyRepositoryAsync(AbstractRepository):
         obj = result.scalars().first()
         if raise_if_not_found:
             if obj is None:
-                raise NotFoundException(f"{Model} not found")
+                raise NotFoundException(f"{Model.__name__} not found")
         return obj
 
-    async def list_filtered(self, Model: type[sa_Model], exclude_none: bool = True, **kwargs) -> list[sa_Model]:
+    async def list_filtered(self, Model: type[sa_Model], exclude_none=True, **kwargs) -> list[sa_Model]:
         kwargs_local = kwargs.copy()
         if exclude_none:
             for k, v in kwargs.items():
@@ -290,9 +288,7 @@ class SqlAlchemyRepositoryAsync(AbstractRepository):
         objs = list(result.scalars().all())
         return objs
 
-    async def get_or_create_many(
-            self, Model: type[sa_Model], serializers: list[pd_Model]
-    ) -> list[sa_Model]:
+    async def get_or_create_many(self, Model: type[sa_Model], serializers: list[pd_Model]) -> list[sa_Model]:
         objs = []
         for serializer in serializers:
             serializer_data = my_jsonable_encoder(serializer)
@@ -331,13 +327,15 @@ class SqlAlchemyRepositoryAsync(AbstractRepository):
             is_created = True
         return is_created, obj
 
-    async def get_or_create(self, Model: type[sa_Model], serializer: pd_Model) -> tuple[bool, sa_Model]:
+    async def get_or_create(self, Model: type[sa_Model], serializer: pd_Model,
+                            exclude_none=True, exclude_unset=True) -> tuple[bool, sa_Model]:
         is_created = False
-        stmt = select(Model).filter_by(**serializer.model_dump())
+        serializer_data = get_serializer_data(serializer, exclude_none=exclude_none, exclude_unset=exclude_unset)
+        stmt = select(Model).filter_by(**serializer_data)
         result = await self.session.execute(stmt)
         obj = result.scalars().first()
         if not obj:
-            obj = Model(**serializer.model_dump())
+            obj = Model(**serializer_data)
             self.session.add(obj)
             try:
                 await self.session.commit()
@@ -350,12 +348,9 @@ class SqlAlchemyRepositoryAsync(AbstractRepository):
             is_created = True
         return is_created, obj
 
-    async def update(self, obj: sa_Model, serializer: pd_Model | dict, exclude_unset=True,
-                     exclude_none=True) -> sa_Model:
-        if isinstance(serializer, dict):
-            update_data = serializer
-        else:
-            update_data = serializer.model_dump(exclude_unset=exclude_unset, exclude_none=exclude_none)
+    async def update(self, obj: sa_Model, serializer: pd_Model | dict,
+                     exclude_unset=True, exclude_none=True) -> sa_Model:
+        update_data = get_serializer_data(serializer, exclude_none, exclude_unset)
 
         # Filter out fields that should not be updated
         fields_to_update = [x for x in update_data if hasattr(obj, x)]

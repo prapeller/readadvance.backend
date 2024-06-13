@@ -16,7 +16,8 @@ class FileIndexModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpd
     file_storage_uuid = sa.Column(sa.UUID(as_uuid=False), unique=True, nullable=False)
 
     def __repr__(self):
-        return f'<FileIndexModel> ({self.id=:}, {self.uuid=:}, {self.file_storage_uuid=:}'
+        return (f'{self.__class__.__name__} '
+                f'{self.id=}, {self.uuid=}, {self.file_storage_uuid=}, {self.name=}, {self.content_type=}')
 
 
 class FileStorageModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedMixin, BaseObjStorage):
@@ -25,4 +26,5 @@ class FileStorageModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedU
     file_data = sa.Column(postgresql.BYTEA(), nullable=False)
 
     def __repr__(self):
-        return f'<FileStorageModel> ({self.id=:}, {self.uuid=:})'
+        return (f'{self.__class__.__name__} '
+                f'{self.id=}, {self.uuid=}')

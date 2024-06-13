@@ -143,6 +143,10 @@ class PeriodEnum(StrEnumRepr):
     microseconds = 'microseconds'
 
 
+class QueueNamesEnum(StrEnumRepr):
+    default = 'default'
+
+
 class QueueTaskPrioritiesEnum(IntEnumRepr):
     q_1 = 1
     q_2 = 2
@@ -173,8 +177,6 @@ class LevelCEFRCodesEnum(StrEnumRepr):
     B2 = 'B2'
     C1 = 'C1'
     C2 = 'C2'
-
-    NOT_IDENTIFIED = 'not identified'
 
 
 class UTCTimeZonesEnum(StrEnumRepr):
@@ -230,4 +232,16 @@ class LanguagesISO2NamesEnum(StrEnumRepr):
 
 class UserWordStatusEnum(StrEnumRepr):
     to_learn = 'to_learn'
-    known = 'known'
+    was_learned = 'was_learned'
+
+
+class UserTextStatusEnum(StrEnumRepr):
+    to_read = 'to_read'
+    was_read = 'was_read'
+
+
+class TasksNamesEnum(StrEnumRepr):
+    words_identify_level_task = 'words_identify_level_task'
+    texts_identify_language_task = 'texts_identify_language_task'
+    texts_identify_level_task = 'texts_identify_level_task'
+    texts_identify_language_and_level_task = 'texts_identify_language_and_level_task'

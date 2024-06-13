@@ -1,4 +1,5 @@
-from core.enums import LevelSystemNamesEnum, LevelOrderEnum, LevelCEFRCodesEnum
+from core.enums import LevelSystemNamesEnum, LevelOrderEnum, LevelCEFRCodesEnum, TasksNamesEnum, \
+    QueueTaskPrioritiesEnum
 
 TIMEZONES_DICT = {
     "UTC+14": "Etc/GMT-14",
@@ -487,23 +488,18 @@ CURRENCIES_DICT = {
     'TRY': ('Turkish Lira', 'Türk Lirası'),
 }
 
-LEVEL_SYSTEM_ORDERS_CODES = {
+LEVEL_ORDERS_CODES = {
     LevelSystemNamesEnum.CEFR: {LevelOrderEnum.o_1: LevelCEFRCodesEnum.A1,
                                 LevelOrderEnum.o_2: LevelCEFRCodesEnum.A2,
                                 LevelOrderEnum.o_3: LevelCEFRCodesEnum.B1,
                                 LevelOrderEnum.o_4: LevelCEFRCodesEnum.B2,
                                 LevelOrderEnum.o_5: LevelCEFRCodesEnum.C1,
                                 LevelOrderEnum.o_6: LevelCEFRCodesEnum.C2},
-    # LevelSystemNamesEnum.HSK: {LevelOrderEnum.o_1: LevelNativeCodesEnum.HSK1,
-    #                            LevelOrderEnum.o_2: LevelNativeCodesEnum.HSK2,
-    #                            LevelOrderEnum.o_3: LevelNativeCodesEnum.HSK3,
-    #                            LevelOrderEnum.o_4: LevelNativeCodesEnum.HSK4,
-    #                            LevelOrderEnum.o_5: LevelNativeCodesEnum.HSK5,
-    #                            LevelOrderEnum.o_6: LevelNativeCodesEnum.HSK6},
-    # LevelSystemNamesEnum.TRKI: {LevelOrderEnum.o_1: LevelNativeCodesEnum.TRKI1,
-    #                             LevelOrderEnum.o_2: LevelNativeCodesEnum.TRKI2,
-    #                             LevelOrderEnum.o_3: LevelNativeCodesEnum.TRKI3,
-    #                             LevelOrderEnum.o_4: LevelNativeCodesEnum.TRKI4,
-    #                             LevelOrderEnum.o_5: LevelNativeCodesEnum.TRKI5,
-    #                             LevelOrderEnum.o_6: LevelNativeCodesEnum.TRKI6},
+}
+
+CELERY_TASK_PRIORITIES = {
+    TasksNamesEnum.words_identify_level_task: QueueTaskPrioritiesEnum.q_1,
+    TasksNamesEnum.texts_identify_language_and_level_task: QueueTaskPrioritiesEnum.q_2,
+    TasksNamesEnum.texts_identify_level_task: QueueTaskPrioritiesEnum.q_2,
+    TasksNamesEnum.texts_identify_language_task: QueueTaskPrioritiesEnum.q_2,
 }

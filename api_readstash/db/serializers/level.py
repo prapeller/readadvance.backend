@@ -6,17 +6,13 @@ from core.enums import LevelOrderEnum, LevelCEFRCodesEnum
 
 
 class LevelUpdateSerializer(pd.BaseModel):
-    language_uuid: str | None = None
     order: LevelOrderEnum | None = None
     cefr_code: LevelCEFRCodesEnum | None = None
-    native_code: LevelCEFRCodesEnum | None = None
 
 
 class LevelCreateSerializer(LevelUpdateSerializer):
-    language_uuid: str
     order: LevelOrderEnum
     cefr_code: LevelCEFRCodesEnum
-    native_code: LevelCEFRCodesEnum | None = None
 
 
 class LevelReadSerializer(LevelCreateSerializer):

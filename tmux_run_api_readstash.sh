@@ -1,6 +1,6 @@
 #!/bin/bash
 
-session="run_api_head"
+session="run_api_readstash"
 
 # Ensure the session is not already running
 if tmux has-session -t $session 2>/dev/null; then
@@ -11,13 +11,13 @@ fi
 tmux start-server
 tmux new-session -d -s $session
 
-# environment variables
-tmux send-keys "source ./export_vars_readstash.sh" C-m
-
-# initial setup, entrypoint and run the api_head
+# environment variables and entrypoint
+tmux send-keys "source ./export_local_envs.sh" C-m
 tmux send-keys "cd api_readstash" C-m
-tmux send-keys "python3.11 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements/local.txt" C-m
+tmux send-keys "if [ ! -d venv ]; then python3.11 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements/local.txt; else source venv/bin/activate; fi" C-m
 tmux send-keys "../docker/api_readstash/entrypoint_api.sh" C-m
+
+# migrate and run
 tmux send-keys "python -m scripts.migrate -db='postgres_readstash'" C-m
 tmux send-keys "python -m scripts.migrate -db='postgres_obj_storage'" C-m
 tmux send-keys "python main.py" C-m

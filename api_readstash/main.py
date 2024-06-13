@@ -8,6 +8,7 @@ from api.v1.auth import (
     postgres as v1_auth_postgres,
     users as v1_auth_users,
     words as v1_auth_words,
+    texts as v1_auth_texts,
 )
 from api.v1.public import (
     languages as v1_public_languages,
@@ -17,7 +18,7 @@ from core.config import settings
 from core.middlewares import CatchAssertionErrorMiddleware
 from core.security import current_user_dependency, VerifyHMACMiddleware
 from db import init_models
-from scripts.recreate import recreate_languages, recreate_levels, recreate_test_users
+from scripts.recreate import recreate_languages, recreate_levels, recreate_test_users, recreate_words
 from services.cache.cache import RedisCache
 
 
@@ -28,8 +29,9 @@ async def lifespan(app: fa.FastAPI):
     init_models()
     await recreate_languages()
     await recreate_levels()
-    if config.DEBUG and config.DOCKER:
+    if config.DEBUG:
         await recreate_test_users()
+        await recreate_words()
 
     # shutdown
     yield
@@ -57,6 +59,7 @@ v1_router_auth = fa.APIRouter(
 v1_router_auth.include_router(v1_auth_postgres.router, prefix='/postgres', tags=['postgres'])
 v1_router_auth.include_router(v1_auth_users.router, prefix='/users', tags=['users'])
 v1_router_auth.include_router(v1_auth_words.router, prefix='/words', tags=['words'])
+v1_router_auth.include_router(v1_auth_texts.router, prefix='/texts', tags=['texts'])
 
 v1_router_public = fa.APIRouter(prefix='/public')
 v1_router_public.include_router(v1_public_languages.router, prefix='/languages', tags=['languages'])

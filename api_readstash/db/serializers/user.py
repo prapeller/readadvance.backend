@@ -7,6 +7,7 @@ from core.enums import UTCTimeZonesEnum, UserRolesEnum
 
 class UserUpdateSerializer(pd.BaseModel):
     uuid: str | None = None
+    external_uuid: str | None = None
     email: pd.EmailStr | None = None
     first_name: str | None = None
     last_name: str | None = None
@@ -27,6 +28,7 @@ class UserUpdateSerializer(pd.BaseModel):
 class UserCreateSerializer(UserUpdateSerializer):
     email: pd.EmailStr
     uuid: str | None = None
+    external_uuid: str | None = None
     first_name: str | None = None
     last_name: str | None = None
     timezone: UTCTimeZonesEnum | None = UTCTimeZonesEnum.utc_p03
@@ -49,6 +51,7 @@ class UserReadSerializer(UserCreateSerializer):
 
 class KCUserReadSerializer(pd.BaseModel):
     uuid: str
+    external_uuid: str | None = None
     email: pd.EmailStr
     first_name: str | None = None
     last_name: str | None = None

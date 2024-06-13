@@ -150,12 +150,16 @@ dmypy.json
 .pyre/
 
 # The following no need to copy to repository:
-prometheus_multiproc_metrics/*
 
 # 1) Staticfiles backups
 api_readstash/staticfiles/backups/*
+api_readstash/staticfiles/object_storage_backups/*
 
 # 2) Envs
-.envs/.docker-compose-local/*
-.envs/.local/*
-.envs/.docker-compose-prod/*
+.envs/.docker-compose-local*
+.envs/.docker-compose-prod*
+.envs/.local*
+.envs/.prod*
+
+# 3) Prometheus metrics
+prometheus_multiproc_metrics/*

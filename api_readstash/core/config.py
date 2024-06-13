@@ -61,9 +61,9 @@ class Settings(ps.BaseSettings):
 
     INTER_SERVICE_SECRET: str
 
-    API_HEAD_USER_EMAIL: pd.EmailStr
-    API_HEAD_USER_NAME: str
-    API_HEAD_USER_PASSWORD: str
+    CELERY_BROKER_URL: str
+    CELERY_RESULT_BACKEND: str
+    CELERY_TIMEZONE: str
 
     class Config:
         extra = 'allow'

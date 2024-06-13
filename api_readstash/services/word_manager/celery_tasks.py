@@ -1,0 +1,42 @@
+import asyncio
+
+import backoff
+
+from celery_app import celery_app
+from core.enums import TasksNamesEnum, ChatGPTModelsEnum
+from db import SessionLocalAsync
+from db.models.language import LanguageModel
+from db.models.level import LevelModel
+from db.models.word import WordModel
+from db.serializers.word import WordUpdateSerializer
+from services.chatgpt.word_identifier import get_word_level_chatgpt
+from services.postgres.repository import SqlAlchemyRepositoryAsync
+from services.word_manager.logger_setup import logger
+
+
+@celery_app.task(name=TasksNamesEnum.words_identify_level_task)
+@backoff.on_exception(backoff.constant, Exception, max_tries=5)
+def words_identify_level_task(word_uuid: str, gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4):
+    logger.debug(f'{TasksNamesEnum.words_identify_level_task} started with {word_uuid=}')
+
+    async def identify_word_level_async(word_uuid: str, gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4):
+        async with SessionLocalAsync() as session:
+            repo = SqlAlchemyRepositoryAsync(session)
+            try:
+                word = await repo.get(WordModel, raise_if_not_found=True, uuid=word_uuid)
+                language = await repo.get(LanguageModel, uuid=word.language_uuid)
+                level_code = await get_word_level_chatgpt(word.characters, language.iso2, gpt_model)
+                level = await repo.get(LevelModel, cefr_code=level_code)
+                word = await repo.update(word, WordUpdateSerializer(level_uuid=level.uuid))
+                logger.debug(f'updated {word=} level to {level=}')
+            except Exception as e:
+                detail = f'{TasksNamesEnum.words_identify_level_task} failed with {word_uuid=}: {e.__class__.__name__}: {e}'
+                logger.error(detail)
+                # notify admin in future
+                raise e
+
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        asyncio.ensure_future(identify_word_level_async(word_uuid, gpt_model))
+    else:
+        loop.run_until_complete(identify_word_level_async(word_uuid, gpt_model))

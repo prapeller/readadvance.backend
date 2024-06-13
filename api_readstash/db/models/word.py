@@ -3,11 +3,19 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from db import Base
-from db.models._shared import CreatedUpdatedMixin, IdentifiedWithIntMixin, IdentifiedWithUuidMixin
+from db.models._shared import CreatedUpdatedMixin, IdentifiedWithIntMixin, IdentifiedWithUuidMixin, IsActiveMixin
 from db.models.file_storage import FileIndexModel
 
 
-class WordModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedMixin, Base):
+class WordModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedMixin, IsActiveMixin, Base):
+    """
+    table for words.
+    words are being created by admin or app.
+    when user upload text - app checks its language, and for every word searches it in db
+        if it is created in this lang - pass
+        if not - creates 'inactive' word so 'lang admin' later could make it 'active' and create translations for other langs
+    users can add word them to their word list to set status and create own files.
+    """
     __tablename__ = 'word'
 
     characters = sa.Column(sa.String(50), nullable=False)
@@ -21,26 +29,42 @@ class WordModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedM
     level = relationship('LevelModel', back_populates='words',
                          primaryjoin='WordModel.level_uuid==LevelModel.uuid')
 
+    translations = relationship(
+        'WordModel',
+        secondary='word_translation',
+        primaryjoin='WordTranslationAssoc.word_uuid_original == WordModel.uuid',
+        secondaryjoin='WordTranslationAssoc.word_uuid_translated == WordModel.uuid',
+    )
+
+    translations_to_language = relationship(
+        "WordModel",
+        secondary="word_translation",
+        primaryjoin="WordTranslationAssoc.word_uuid_original == WordModel.uuid",
+        secondaryjoin="and_(WordTranslationAssoc.word_uuid_translated == WordModel.uuid, "
+                      "WordModel.language_uuid == bindparam('language_uuid'))",
+        viewonly=True,
+    )
+
     _image_file_index = relationship('FileIndexModel',
-                                     secondary='word_file_user_status',
-                                     primaryjoin="and_(WordModel.uuid == WordFileUserStatusAssoc.word_uuid, "
-                                                 "WordFileUserStatusAssoc.user_uuid == None, "
-                                                 "WordFileUserStatusAssoc.file_index_uuid == FileIndexModel.uuid, "
+                                     secondary='user_word_status_file',
+                                     primaryjoin="and_(WordModel.uuid == UserWordStatusFileAssoc.word_uuid, "
+                                                 "UserWordStatusFileAssoc.user_uuid == None, "
+                                                 "UserWordStatusFileAssoc.file_index_uuid == FileIndexModel.uuid, "
                                                  "FileIndexModel.content_type.like('image'))",
                                      viewonly=True)
 
     _audio_file_index = relationship('FileIndexModel',
-                                     secondary='word_file_user_status',
-                                     primaryjoin="and_(WordModel.uuid == WordFileUserStatusAssoc.word_uuid, "
-                                                 "WordFileUserStatusAssoc.user_uuid == None, "
-                                                 "WordFileUserStatusAssoc.file_index_uuid==FileIndexModel.uuid, "
+                                     secondary='user_word_status_file',
+                                     primaryjoin="and_(WordModel.uuid == UserWordStatusFileAssoc.word_uuid, "
+                                                 "UserWordStatusFileAssoc.user_uuid == None, "
+                                                 "UserWordStatusFileAssoc.file_index_uuid==FileIndexModel.uuid, "
                                                  "FileIndexModel.content_type.like('audio'))",
                                      viewonly=True)
 
     _users_image_file_indexes = relationship('FileIndexModel',
-                                             secondary='word_file_user_status',
-                                             primaryjoin="and_(WordModel.uuid == WordFileUserStatusAssoc.word_uuid, "
-                                                         "WordFileUserStatusAssoc.file_index_uuid==FileIndexModel.uuid, "
+                                             secondary='user_word_status_file',
+                                             primaryjoin="and_(WordModel.uuid == UserWordStatusFileAssoc.word_uuid, "
+                                                         "UserWordStatusFileAssoc.file_index_uuid==FileIndexModel.uuid, "
                                                          "FileIndexModel.content_type.like('image'))",
                                              uselist=True,
                                              viewonly=True)
@@ -79,3 +103,7 @@ class WordModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedM
     @users_image_file_indexes.expression
     def users_image_file_indexes(cls):
         return cls._users_image_file_indexes
+
+    def __repr__(self):
+        return (f'{self.__class__.__name__} '
+                f'{self.id=}, {self.uuid=}, {self.language_uuid=}, {self.characters=}')

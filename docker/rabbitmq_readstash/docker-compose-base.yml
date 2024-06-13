@@ -1,0 +1,19 @@
+services:
+
+  rabbitmq_readstash:
+    build:
+      context: ../..
+      dockerfile: ./docker/rabbitmq_readstash/Dockerfile
+    container_name: rabbitmq_readstash
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - shared_network
+
+
+networks:
+  shared_network:
+    external: true

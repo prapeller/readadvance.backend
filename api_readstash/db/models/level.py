@@ -1,6 +1,6 @@
 import sqlalchemy as sa
-
 from sqlalchemy.orm import relationship
+
 from db import Base
 from db.models._shared import CreatedUpdatedMixin, IdentifiedWithIntMixin, IdentifiedWithUuidMixin
 
@@ -8,10 +8,12 @@ from db.models._shared import CreatedUpdatedMixin, IdentifiedWithIntMixin, Ident
 class LevelModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedMixin, Base):
     __tablename__ = 'level'
 
-    language_uuid = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('language.uuid', ondelete='SET NULL'),
-                              nullable=False, index=True)
     order = sa.Column(sa.Integer, nullable=False)
     cefr_code = sa.Column(sa.String(2), nullable=False)
-    native_code = sa.Column(sa.String(10))
 
     words = relationship('WordModel', back_populates='level', lazy='joined')
+    texts = relationship('TextModel', back_populates='level', lazy='joined')
+
+    def __repr__(self):
+        return (f'{self.__class__.__name__} '
+                f'{self.id=}, {self.uuid=}, {self.cefr_code=}, {self.order=}')
