@@ -9,21 +9,15 @@ class TextModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedM
     __tablename__ = 'text'
 
     content = sa.Column(sa.Text, nullable=False)
+    language_iso_2 = sa.Column(sa.String(2), nullable=True)
+    level_cefr_code = sa.Column(sa.String(2), nullable=True)
 
-    level_uuid = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('level.uuid', ondelete='SET NULL'),
-                           nullable=True)
-    language_uuid = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('language.uuid', ondelete='SET NULL'),
-                              nullable=True)
     user_uuid = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('user.uuid', ondelete='CASCADE'),
                           nullable=False)  # creator uuid
 
     user_creator = relationship('UserModel', back_populates='created_texts',
                                 primaryjoin='TextModel.user_uuid==UserModel.uuid')
-    language = relationship('LanguageModel', back_populates='texts',
-                            primaryjoin='TextModel.language_uuid==LanguageModel.uuid')
-    level = relationship('LevelModel', back_populates='texts',
-                         primaryjoin='TextModel.level_uuid==LevelModel.uuid')
 
     def __repr__(self):
         return (f'{self.__class__.__name__} '
-                f'{self.id=}, {self.uuid=}, {self.language_uuid=}')
+                f'{self.id=}, {self.uuid=}, {self.language_iso_2=}')

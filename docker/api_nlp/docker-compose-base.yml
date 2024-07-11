@@ -1,60 +1,17 @@
 services:
 
-  celery_worker_readstash:
+  api_nlp:
     build:
       context: ../..
-      dockerfile: ./docker/api_readstash/Dockerfile
-    container_name: celery_worker_readstash
-    command: /start_api_celery_worker.sh
+      dockerfile: ./docker/api_nlp/Dockerfile
+    container_name: api_nlp
     volumes:
-      - ../../api_readstash:/app/api_readstash
+      - ../../api_nlp:/app/api_nlp
     networks:
-      - local_network_api_readstash
-      - shared_network
-    environment:
-      - TZ=UTC
-
-  celery_beat_readstash:
-    build:
-      context: ../..
-      dockerfile: ./docker/api_readstash/Dockerfile
-    command: /start_api_celery_beat.sh
-    container_name: celery_beat_readstash
-    volumes:
-      - ../../api_readstash:/app/api_readstash
-    networks:
-      - local_network_api_readstash
-      - shared_network
-    environment:
-      - TZ=UTC
-
-  celery_flower_readstash:
-    build:
-      context: ../..
-      dockerfile: ./docker/api_readstash/Dockerfile
-    command: /start_api_celery_flower.sh
-    container_name: celery_flower_readstash
-    volumes:
-      - ../../api_readstash:/app/api_readstash
-    networks:
-      - local_network_api_readstash
-      - shared_network
-    environment:
-      - TZ=UTC
-
-
-  api_readstash:
-    build:
-      context: ../..
-      dockerfile: ./docker/api_readstash/Dockerfile
-    container_name: api_readstash
-    volumes:
-      - ../../api_readstash:/app/api_readstash
-    networks:
-      - local_network_api_readstash
+      - local_network_api_nlp
       - shared_network
     healthcheck:
-      test: [ "CMD-SHELL", "curl -H 'X-Request-Id: healthcheck' --fail -f http://$$API_READSTASH_HOST:$$API_READSTASH_PORT/$$DOCS_URL" ]
+      test: [ "CMD-SHELL", "curl -H 'X-Request-Id: healthcheck' --fail -f http://$$API_NLP_HOST:$$API_NLP_PORT/$$DOCS_URL" ]
       interval: 10s
       timeout: 30s
       retries: 3
@@ -62,7 +19,7 @@ services:
       - TZ=UTC
 
 networks:
-  local_network_api_readstash:
+  local_network_api_nlp:
     driver: bridge
   shared_network:
     external: true

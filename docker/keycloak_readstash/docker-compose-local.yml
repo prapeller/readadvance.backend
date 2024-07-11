@@ -1,12 +1,12 @@
 services:
 
   postgres_keycloak:
+    env_file:
+      - ../../.envs/.docker-compose-local/.keycloak_readstash
     ports:
       - "5430:5432"
     expose:
       - "5432"
-    env_file:
-      - ../../.envs/.docker-compose-local/.keycloak_readstash
 
 
   keycloak:

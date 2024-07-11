@@ -5,18 +5,21 @@ import uvicorn
 from fastapi.responses import ORJSONResponse
 
 from api.v1.internal import (
-    texts as v1_internal_texts,
+    analyses as v1_internal_analyses,
+    translations as v1_internal_translations,
 )
 from core.config import settings
 from core.middlewares import CatchAssertionErrorMiddleware
 from core.security import VerifyHMACMiddleware
-from services.nlp_manager.nlp_manager import NLPManager
+from services.marianmt_manager.marianmt_manager import MarianMTManager
+from services.stanza_manager.stanza_manager import StanzaManager
 
 
 @asynccontextmanager
 async def lifespan(app: fa.FastAPI):
     # startup
-    NLPManager()
+    StanzaManager()
+    MarianMTManager()
 
     # shutdown
     yield
@@ -32,10 +35,11 @@ app = fa.FastAPI(
 )
 
 app.add_middleware(CatchAssertionErrorMiddleware)  # noqa
-app.add_middleware(VerifyHMACMiddleware)  # noqa
+# app.add_middleware(VerifyHMACMiddleware)  # noqa
 
 v1_router_internal = fa.APIRouter(prefix='/internal')
-v1_router_internal.include_router(v1_internal_texts.router, prefix='/categories', tags=['internal'])
+v1_router_internal.include_router(v1_internal_analyses.router, prefix='/analyses', tags=['internal'])
+v1_router_internal.include_router(v1_internal_translations.router, prefix='/translations', tags=['internal'])
 
 app.include_router(v1_router_internal, prefix="/api/v1")
 

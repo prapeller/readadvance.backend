@@ -11,7 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from core import config
 from core.config import settings
-from core.enums import UserRolesEnum, DBEnum
+from core.enums import DBEnum, UserRolesEnum
 from core.exceptions import UnauthorizedException
 from core.logger_config import setup_logger
 from db.models.user import UserModel

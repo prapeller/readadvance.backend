@@ -11,12 +11,9 @@ class GrammarModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdat
     name = sa.Column(JSONB, nullable=False, server_default=sa.text('\'{}\'::json'))
     explanation = sa.Column(JSONB, nullable=False, server_default=sa.text('\'{}\'::json'))
     examples = sa.Column(JSONB, nullable=False, server_default=sa.text('\'[]\'::json'))
-
-    language_uuid = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('language.uuid', ondelete='SET NULL'),
-                              nullable=False, index=True)
-    level_uuid = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('level.uuid', ondelete='SET NULL'), nullable=False,
-                           index=True)
+    language_iso_2 = sa.Column(sa.String(2), nullable=True, index=True)
+    level_cefr_code = sa.Column(sa.String(2), nullable=True, index=True)
 
     def __repr__(self):
         return (f'{self.__class__.__name__} '
-                f'{self.id=}, {self.uuid=}, {self.language_uuid=}, {self.name=}')
+                f'{self.id=}, {self.uuid=}, {self.name=}')

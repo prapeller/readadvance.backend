@@ -189,3 +189,12 @@ App for foreign language learners to
 - scalable, new servers could be added to balance load
 - robust and steady, 
 - if some server goes down, users must have access not to 'write' operations but at least to 'read' from the closest available postgres_readstash replica
+
+
+# Usage:
+
+- create text:
+
+```
+
+```

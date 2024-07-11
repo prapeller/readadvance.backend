@@ -1,23 +1,18 @@
-from pathlib import Path
-
 import fastapi as fa
 
 from core.constants import CELERY_TASK_PRIORITIES
 from core.enums import ChatGPTModelsEnum, ResponseDetailEnum, DBSessionModeEnum, UserTextStatusEnum, \
     TasksNamesEnum
 from core.exceptions import AlreadyExistsException
-from core.logger_config import setup_logger
 from db.models.association import UserTextStatusAssoc
-from db.models.language import LanguageModel
-from db.models.level import LevelModel
 from db.models.text import TextModel
 from db.models.word import WordModel
 from db.serializers.association import UserTextStatusCreateSerializer, UserTextStatusUpdateSerializer
 from db.serializers.text import TextUpdateSerializer, TextCreateSerializer
-from services.chatgpt.text_identifier import get_text_language_chatgpt, get_text_level_chatgpt
 from services.postgres.repository import SqlAlchemyRepositoryAsync, sqlalchemy_repo_async_dependency, \
     sqlalchemy_repo_async_read_dependency
 from services.text_manager.celery_tasks import texts_identify_language_and_level_task
+from services.text_manager.chatgpt_helpers import identify_text_language_chatgpt, identify_text_level_chatgpt
 from services.text_manager.logger_setup import logger
 
 
@@ -68,18 +63,24 @@ class TextManager:
         logger.debug(f'removed {text_uuid=}')
         return res
 
-    async def identify_text_language(self, text_uuid: str, gpt_model: ChatGPTModelsEnum) -> TextModel:
+    async def identify_text_language_with_chatgpt(
+            self,
+            text_uuid: str,
+            gpt_model: ChatGPTModelsEnum,
+    ) -> TextModel:
         text = await self.get_text(text_uuid, session_mode=DBSessionModeEnum.rw)
-        language_iso2 = await get_text_language_chatgpt(text.content, gpt_model)
-        language = await self.repo_write.get(LanguageModel, iso2=language_iso2)
-        text = await self.repo_write.update(text, TextUpdateSerializer(language_uuid=language.uuid))
+        language_iso_2 = await identify_text_language_chatgpt(text.content, gpt_model)
+        text = await self.repo_write.update(text, TextUpdateSerializer(language_iso_2=language_iso_2))
         return text
 
-    async def identify_text_level(self, text_uuid: str, gpt_model: ChatGPTModelsEnum) -> TextModel:
+    async def identify_text_level_with_chatgpt(
+            self,
+            text_uuid: str,
+            gpt_model: ChatGPTModelsEnum,
+    ) -> TextModel:
         text = await self.get_text(text_uuid, session_mode=DBSessionModeEnum.rw)
-        level_code = await get_text_level_chatgpt(text.content, gpt_model)
-        level = await self.repo_write.get(LevelModel, cefr_code=level_code)
-        text = await self.repo_write.update(text, TextUpdateSerializer(level_uuid=level.uuid))
+        level_cefr_code = await identify_text_level_chatgpt(text.content, gpt_model)
+        text = await self.repo_write.update(text, TextUpdateSerializer(level_cefr_code=level_cefr_code))
         return text
 
     async def add_to_users_texts_with_status(self,
@@ -102,5 +103,6 @@ class TextManager:
 
 async def text_manager_dependency(
         repo_write: SqlAlchemyRepositoryAsync = fa.Depends(sqlalchemy_repo_async_dependency),
-        repo_read: SqlAlchemyRepositoryAsync = fa.Depends(sqlalchemy_repo_async_read_dependency)) -> TextManager:
+        repo_read: SqlAlchemyRepositoryAsync = fa.Depends(sqlalchemy_repo_async_read_dependency),
+) -> TextManager:
     return TextManager(repo_write=repo_write, repo_read=repo_read)

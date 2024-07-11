@@ -17,27 +17,6 @@ class IntEnumRepr(int, Enum):
         return str(self.value)
 
 
-class EnvEnum(StrEnumRepr):
-    local = 'local'
-    docker_compose_local = 'docker-compose-local'
-    docker_compose_prod = 'docker-compose-prod'
-
-
-class RequestMethodsEnum(StrEnumRepr):
-    get = 'GET'
-    post = 'POST'
-    put = 'PUT'
-    delete = 'DELETE'
-
-
-class UserRolesEnum(str, Enum):
-    head = 'head'
-    admin = 'admin'
-    guest = 'guest'
-    premium = 'premium'
-    anonymous = 'anonymous'
-
-
 class ContentTypesEnum(StrEnumRepr):
     # application
     zip = 'application/zip'
@@ -210,12 +189,14 @@ class UTCTimeZonesEnum(StrEnumRepr):
 
 
 class ChatGPTModelsEnum(StrEnumRepr):
-    gpt_4 = 'gpt-4'  # OpenAI's GPT-4 model
-    gpt_3_5 = 'gpt-3.5-turbo'  # OpenAI's GPT-3.5-turbo model
+    gpt_4o = 'gpt-4o'  # Our fastest and most affordable flagship model. Text and image input, text output. 128k context length. Input: $5 | Output: $15
+    gpt_4 = 'gpt-4-turbo'  # Our previous high-intelligence model. Text and image input, text output. 128k context length. Input: $10 | Output: $30*
+    gpt_3_5 = 'gpt-3.5-turbo-0125'  # Our fast, inexpensive model for simple tasks. Text input, text output. 16k context length. Input: $0.50 | Output: $1.50*
 
 
 class TranslationMethodsEnum(StrEnumRepr):
     manual = 'manual'
+    api_nlp = 'api_nlp'
     gpt_4 = ChatGPTModelsEnum.gpt_4
     gpt_3_5 = ChatGPTModelsEnum.gpt_3_5
 
@@ -245,3 +226,25 @@ class TasksNamesEnum(StrEnumRepr):
     texts_identify_language_task = 'texts_identify_language_task'
     texts_identify_level_task = 'texts_identify_level_task'
     texts_identify_language_and_level_task = 'texts_identify_language_and_level_task'
+    texts_create_words_from_text = 'texts_create_words_from_text'
+
+
+class EnvEnum(StrEnumRepr):
+    local = 'local'
+    docker_compose_local = 'docker-compose-local'
+    docker_compose_prod = 'docker-compose-prod'
+
+
+class RequestMethodsEnum(StrEnumRepr):
+    get = 'GET'
+    post = 'POST'
+    put = 'PUT'
+    delete = 'DELETE'
+
+
+class UserRolesEnum(str, Enum):
+    head = 'head'
+    admin = 'admin'
+    guest = 'guest'
+    premium = 'premium'
+    anonymous = 'anonymous'

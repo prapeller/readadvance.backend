@@ -1,14 +1,10 @@
 import fastapi as fa
 import pydantic as pd
 
-from core.constants import CELERY_TASK_PRIORITIES
-from core.enums import ChatGPTModelsEnum, UserTextStatusEnum, TasksNamesEnum, QueueNamesEnum
+from core.enums import ChatGPTModelsEnum, UserTextStatusEnum
 from core.security import current_user_dependency, auth_head_or_admin, auth_head
 from db.models.user import UserModel
-from db.serializers._shared import TaskReadSerializer
-from db.serializers.text import TextReadContentSerializer, TextCreateSerializer, TextUpdateSerializer, \
-    TextReadNoContentSerializer
-from services.text_manager.celery_tasks import texts_identify_level_task, texts_identify_language_task
+from db.serializers.text import TextReadContentSerializer, TextCreateSerializer, TextUpdateSerializer
 from services.text_manager.text_manager import TextManager, text_manager_dependency
 
 router = fa.APIRouter()
@@ -48,56 +44,26 @@ async def texts_create(
     return await text_manager.create_text(text_ser, gpt_model)
 
 
-@router.put("/identify-level-sync/{text_uuid}", response_model=TextReadNoContentSerializer)
-@auth_head_or_admin
-async def texts_identify_text_level(
-        text_uuid: pd.UUID4,
-        gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4,
-        text_manager: TextManager = fa.Depends(text_manager_dependency),
-        current_user: UserModel = fa.Depends(current_user_dependency),
-):
-    """identify text level with chatgpt"""
-    return await text_manager.identify_text_level(text_uuid, gpt_model)
-
-
-@router.put("/identify-language-sync/{text_uuid}", response_model=TextReadNoContentSerializer)
+@router.put("/identify-text-language-with-chatgpt/{text_uuid}", response_model=TextReadContentSerializer)
 @auth_head_or_admin
 async def texts_identify_text_language(
         text_uuid: pd.UUID4,
-        gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4,
+        gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_3_5,
         text_manager: TextManager = fa.Depends(text_manager_dependency),
-        current_user: UserModel = fa.Depends(current_user_dependency),
 ):
-    """identify text level with chatgpt"""
-    return await text_manager.identify_text_language(text_uuid, gpt_model)
+    """identify text language with chatgpt and update it"""
+    return await text_manager.identify_text_language_with_chatgpt(str(text_uuid), gpt_model)
 
 
-@router.put("/identify-level/{text_uuid}", response_model=TaskReadSerializer)
+@router.put("/identify-text-level-with-chatgpt/{text_uuid}", response_model=TextReadContentSerializer)
+@auth_head_or_admin
 async def texts_identify_text_level(
         text_uuid: pd.UUID4,
-        gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4,
-        current_user: UserModel = fa.Depends(current_user_dependency),
+        gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_3_5,
+        text_manager: TextManager = fa.Depends(text_manager_dependency),
 ):
-    """identify text level with chatgpt as background task"""
-    task = texts_identify_level_task.apply_async(
-        args=[text_uuid, gpt_model],
-        queue=QueueNamesEnum.default,
-        priority=CELERY_TASK_PRIORITIES[TasksNamesEnum.texts_identify_level_task])
-    return TaskReadSerializer(task_id=task.task_id)
-
-
-@router.put("/identify-language/{text_uuid}", response_model=TaskReadSerializer)
-async def texts_identify_text_language(
-        text_uuid: pd.UUID4,
-        gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4,
-        current_user: UserModel = fa.Depends(current_user_dependency),
-):
-    """identify text level with chatgpt"""
-    task = texts_identify_language_task.apply_async(
-        args=[text_uuid, gpt_model],
-        queue=QueueNamesEnum.default,
-        priority=CELERY_TASK_PRIORITIES[TasksNamesEnum.texts_identify_language_task])
-    return TaskReadSerializer(task_id=task.task_id)
+    """identify text level with chatgpt and update it"""
+    return await text_manager.identify_text_level_with_chatgpt(str(text_uuid), gpt_model)
 
 
 @router.put("/{text_uuid}", response_model=TextReadContentSerializer)

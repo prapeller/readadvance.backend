@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 
 from db import Base
-from db.models._shared import IdentifiedWithIntMixin
+from db.models._shared import CreatedUpdatedMixin, IdentifiedWithIntMixin, IdentifiedWithUuidMixin, IsActiveMixin
 
 
 class UserWordStatusFileAssoc(IdentifiedWithIntMixin, Base):
@@ -51,28 +51,22 @@ class UserTextStatusAssoc(IdentifiedWithIntMixin, Base):
         return (f'{self.__class__.__name__} '
                 f'{self.id=}, {self.user_uuid=}, {self.text_uuid=}, {self.status=}')
 
-import sqlalchemy as sa
-from sqlalchemy.orm import relationship
 
-from db import Base
-from db.models._shared import CreatedUpdatedMixin, IdentifiedWithIntMixin, IdentifiedWithUuidMixin, IsActiveMixin
-
-
-class WordTranslationAssoc(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedMixin, IsActiveMixin, Base):
-    __tablename__ = 'word_translation'
-
-    word_uuid_original = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('word.uuid', ondelete='CASCADE'),
-                                   nullable=False, index=True)
-    word_uuid_translated = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('word.uuid', ondelete='CASCADE'),
-                                     nullable=False, index=True)
-    popularity_count = sa.Column(sa.Integer, nullable=False)
-
-    # word_original = relationship('WordModel',
-    #                              primaryjoin='WordTranslationModel.word_uuid_original == WordModel.uuid',
-    #                              back_populates='translations')
-    # word_translated = relationship('WordModel',
-    #                                primaryjoin='WordTranslationModel.word_uuid_translated == WordModel.uuid')
-
-    def __repr__(self):
-        return (f'{self.__class__.__name__} '
-                f'{self.id=}, {self.uuid=}')
+# class WordTranslationAssoc(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedMixin, IsActiveMixin, Base):
+#     __tablename__ = 'word_translation'
+#
+#     word_uuid_original = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('word.uuid', ondelete='CASCADE'),
+#                                    nullable=False, index=True)
+#     word_uuid_translated = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('word.uuid', ondelete='CASCADE'),
+#                                      nullable=False, index=True)
+#     popularity_count = sa.Column(sa.Integer, nullable=False)
+#
+#     word_original = relationship('WordModel',
+#                                  primaryjoin='WordTranslationModel.word_uuid_original == WordModel.uuid',
+#                                  back_populates='translations')
+#     word_translated = relationship('WordModel',
+#                                    primaryjoin='WordTranslationModel.word_uuid_translated == WordModel.uuid')
+#
+#     def __repr__(self):
+#         return (f'{self.__class__.__name__} '
+#                 f'{self.id=}, {self.uuid=}')

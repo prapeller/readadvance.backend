@@ -151,11 +151,12 @@ dmypy.json
 
 # The following no need to copy to repository:
 
-# 1) Staticfiles backups
+# Staticfiles
 api_readstash/staticfiles/backups/*
 api_readstash/staticfiles/object_storage_backups/*
+api_nlp/staticfiles/stanza/*
 
-# 2) Envs
+# Envs
 .envs/.docker-compose-local*
 .envs/.docker-compose-prod*
 .envs/.local*

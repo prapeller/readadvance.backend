@@ -11,8 +11,6 @@ def init_models():
     from db.models import association  # noqa
     from db.models import file_storage  # noqa
     from db.models import grammar  # noqa
-    from db.models import language  # noqa
-    from db.models import level  # noqa
     from db.models import phrase  # noqa
     from db.models import text  # noqa
     from db.models import user  # noqa

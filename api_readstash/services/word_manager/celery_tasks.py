@@ -5,12 +5,10 @@ import backoff
 from celery_app import celery_app
 from core.enums import TasksNamesEnum, ChatGPTModelsEnum
 from db import SessionLocalAsync
-from db.models.language import LanguageModel
-from db.models.level import LevelModel
 from db.models.word import WordModel
 from db.serializers.word import WordUpdateSerializer
-from services.chatgpt.word_identifier import get_word_level_chatgpt
 from services.postgres.repository import SqlAlchemyRepositoryAsync
+from services.word_manager.chatgpt_helpers import identify_word_level_chatgpt
 from services.word_manager.logger_setup import logger
 
 
@@ -24,11 +22,9 @@ def words_identify_level_task(word_uuid: str, gpt_model: ChatGPTModelsEnum = Cha
             repo = SqlAlchemyRepositoryAsync(session)
             try:
                 word = await repo.get(WordModel, raise_if_not_found=True, uuid=word_uuid)
-                language = await repo.get(LanguageModel, uuid=word.language_uuid)
-                level_code = await get_word_level_chatgpt(word.characters, language.iso2, gpt_model)
-                level = await repo.get(LevelModel, cefr_code=level_code)
-                word = await repo.update(word, WordUpdateSerializer(level_uuid=level.uuid))
-                logger.debug(f'updated {word=} level to {level=}')
+                level_cefr_code = await identify_word_level_chatgpt(word.characters, word.language_iso_2, gpt_model)
+                word = await repo.update(word, WordUpdateSerializer(level_cefr_code=level_cefr_code))
+                logger.debug(f'updated {word=} level to {level_cefr_code=}')
             except Exception as e:
                 detail = f'{TasksNamesEnum.words_identify_level_task} failed with {word_uuid=}: {e.__class__.__name__}: {e}'
                 logger.error(detail)

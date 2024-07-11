@@ -2,6 +2,10 @@ API_READSTASH_BASE := -f ./docker/api_readstash/docker-compose-base.yml
 API_READSTASH_LOCAL := -f ./docker/api_readstash/docker-compose-local.yml
 API_READSTASH_PROD := -f ./docker/api_readstash/docker-compose-prod.yml
 
+API_NLP_BASE := -f ./docker/api_nlp/docker-compose-base.yml
+API_NLP_LOCAL := -f ./docker/api_nlp/docker-compose-local.yml
+API_NLP_PROD := -f ./docker/api_nlp/docker-compose-prod.yml
+
 POSTGRES_READSTASH_BASE := -f ./docker/postgres_readstash/docker-compose-base.yml
 POSTGRES_READSTASH_LOCAL := -f ./docker/postgres_readstash/docker-compose-local.yml
 POSTGRES_READSTASH_PROD := -f ./docker/postgres_readstash/docker-compose-prod.yml
@@ -32,6 +36,7 @@ build-loc:
 	docker-compose -p keycloak_readstash $(KEYCLOAK_BASE) $(KEYCLOAK_LOCAL) up --build -d --remove-orphans
 	docker-compose -p postgres_readstash $(POSTGRES_READSTASH_BASE) $(POSTGRES_READSTASH_LOCAL) up --build -d --remove-orphans
 	docker-compose -p api_readstash $(API_READSTASH_BASE) $(API_READSTASH_LOCAL) up --build -d --remove-orphans
+	docker-compose -p api_nlp $(API_NLP_BASE) $(API_NLP_LOCAL) up --build -d --remove-orphans
 	docker-compose -p redis_readstash $(REDIS_READSTASH_BASE) $(REDIS_READSTASH_LOCAL) up --build -d --remove-orphans
 	docker-compose -p rabbitmq_readstash $(RABBITMQ_READSTASH_BASE) $(RABBITMQ_READSTASH_LOCAL) up --build -d --remove-orphans
 
@@ -103,6 +108,15 @@ api-readstash-build-loc:
 
 api-readstash-down-loc:
 	docker-compose -p api_readstash $(API_READSTASH_BASE) $(API_READSTASH_LOCAL) down
+
+
+
+api-nlp-build-loc:
+	docker network create shared_network || true
+	docker-compose -p api_nlp $(API_NLP_BASE) $(API_NLP_LOCAL) up --build -d --remove-orphans
+
+api-nlp-down-loc:
+	docker-compose -p api_nlp $(API_NLP_BASE) $(API_NLP_LOCAL) down
 
 
 

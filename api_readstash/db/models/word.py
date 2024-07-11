@@ -18,32 +18,12 @@ class WordModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedM
     """
     __tablename__ = 'word'
 
-    characters = sa.Column(sa.String(50), nullable=False)
+    characters = sa.Column(sa.String(50), nullable=False, index=True)
+    lemma = sa.Column(sa.String(50), nullable=False, index=True)
+    pos = sa.Column(sa.String(50), nullable=False, index=True)
 
-    language_uuid = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('language.uuid', ondelete='SET NULL'),
-                              nullable=False, index=True)
-    level_uuid = sa.Column(sa.UUID(as_uuid=False), sa.ForeignKey('level.uuid', ondelete='SET NULL'), index=True)
-
-    language = relationship('LanguageModel', back_populates='words',
-                            primaryjoin='WordModel.language_uuid==LanguageModel.uuid')
-    level = relationship('LevelModel', back_populates='words',
-                         primaryjoin='WordModel.level_uuid==LevelModel.uuid')
-
-    translations = relationship(
-        'WordModel',
-        secondary='word_translation',
-        primaryjoin='WordTranslationAssoc.word_uuid_original == WordModel.uuid',
-        secondaryjoin='WordTranslationAssoc.word_uuid_translated == WordModel.uuid',
-    )
-
-    translations_to_language = relationship(
-        "WordModel",
-        secondary="word_translation",
-        primaryjoin="WordTranslationAssoc.word_uuid_original == WordModel.uuid",
-        secondaryjoin="and_(WordTranslationAssoc.word_uuid_translated == WordModel.uuid, "
-                      "WordModel.language_uuid == bindparam('language_uuid'))",
-        viewonly=True,
-    )
+    language_iso_2 = sa.Column(sa.String(2), nullable=True, index=True)
+    level_cefr_code = sa.Column(sa.String(2), nullable=True, index=True)
 
     _image_file_index = relationship('FileIndexModel',
                                      secondary='user_word_status_file',
@@ -106,4 +86,4 @@ class WordModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedM
 
     def __repr__(self):
         return (f'{self.__class__.__name__} '
-                f'{self.id=}, {self.uuid=}, {self.language_uuid=}, {self.characters=}')
+                f'{self.id=}, {self.uuid=}, {self.language_iso_2=}, {self.characters=}, {self.level_cefr_code}')

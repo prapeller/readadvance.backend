@@ -12,22 +12,6 @@ from services.word_manager.word_manager import WordManager, word_manager_depende
 router = fa.APIRouter()
 
 
-@router.get("/",
-            response_model=WordsPaginatedSerializer)
-async def words_list(
-        word_manager: WordManager = fa.Depends(word_manager_dependency),
-        word_params: dict = fa.Depends(word_params_dependency),
-        pagination_params: dict = fa.Depends(pagination_params_dependency),
-        order_by: WordOrderByEnum = WordOrderByEnum.created_at,
-        order: OrderEnum = OrderEnum.desc,
-        current_user: UserModel = fa.Depends(current_user_dependency),
-):
-    """list all words for a language"""
-    return await word_manager.list_filtered_paginated_words(word_params,
-                                                            pagination_params,
-                                                            order_by, order)
-
-
 @router.get("/my",
             response_model=WordsPaginatedSerializer)
 async def words_list_my(
@@ -68,7 +52,7 @@ async def words_add_to_my_with_status(
     return await word_manager.add_to_users_words_with_status(current_user.uuid, str(word_uuid), status)
 
 
-@router.post("/", response_model=WordReadSerializer)
+@router.post("", response_model=WordReadSerializer)
 # @auth_head_or_admin
 async def words_create(
         word_ser: WordCreateSerializer,
@@ -77,19 +61,19 @@ async def words_create(
         current_user: UserModel = fa.Depends(current_user_dependency),
 ):
     """create word by admin"""
-    return await word_manager.create_word(word_ser, gpt_model)
+    return await word_manager.get_or_create_word(word_ser, gpt_model)
 
 
-@router.put("/identify-level/{word_uuid}", response_model=WordReadSerializer)
-@auth_head_or_admin
+@router.put("/identify-word-level-with-chatgpt/{word_uuid}", response_model=WordReadSerializer)
+# @auth_head_or_admin
 async def words_identify_word_level(
         word_uuid: pd.UUID4,
-        gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4,
+        gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_3_5,
         word_manager: WordManager = fa.Depends(word_manager_dependency),
         current_user: UserModel = fa.Depends(current_user_dependency),
 ):
     """identify word level with chatgpt"""
-    return await word_manager.identify_word_level(word_uuid, gpt_model)
+    return await word_manager.identify_word_level_with_chatgpt(word_uuid, gpt_model)
 
 
 @router.put("/{word_uuid}", response_model=WordReadSerializer)

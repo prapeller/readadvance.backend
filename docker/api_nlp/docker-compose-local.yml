@@ -1,49 +1,13 @@
 services:
 
-  celery_worker_readstash:
-    build:
-      args:
-        - BUILD_ENV=local
-    env_file:
-      - ../../.envs/.docker-compose-local/.api_readstash
-      - ../../.envs/.docker-compose-local/.postgres_readstash
-      - ../../.envs/.docker-compose-local/.postgres_object_storage
-      - ../../.envs/.docker-compose-local/.redis_readstash
-
-  celery_beat_readstash:
-    build:
-      args:
-        - BUILD_ENV=local
-    env_file:
-      - ../../.envs/.docker-compose-local/.api_readstash
-      - ../../.envs/.docker-compose-local/.postgres_readstash
-      - ../../.envs/.docker-compose-local/.postgres_object_storage
-      - ../../.envs/.docker-compose-local/.redis_readstash
-
-  celery_flower_readstash:
-    build:
-      args:
-        - BUILD_ENV=local
-    env_file:
-      - ../../.envs/.docker-compose-local/.api_readstash
-      - ../../.envs/.docker-compose-local/.postgres_readstash
-      - ../../.envs/.docker-compose-local/.postgres_object_storage
-      - ../../.envs/.docker-compose-local/.redis_readstash
-    ports:
-      - "5555:5555"
-
-
-  api_readstash:
+  api_nlp:
     build:
       args:
         - BUILD_ENV=local
     command: /start_api_local.sh
     env_file:
-      - ../../.envs/.docker-compose-local/.api_readstash
-      - ../../.envs/.docker-compose-local/.postgres_readstash
-      - ../../.envs/.docker-compose-local/.postgres_object_storage
-      - ../../.envs/.docker-compose-local/.redis_readstash
+      - ../../.envs/.docker-compose-local/.api_nlp
     expose:
-      - "8000"
+      - "8001"
     ports:
-      - "8000:8000"
+      - "8001:8001"

@@ -2,8 +2,10 @@
 
 ENV_FILES=(
     "./.envs/.local/.api_readstash"
-    "./.envs/.local/.api_nlp"
+    "./.envs/.local/.redis_readstash"
     "./.envs/.local/.postgres_readstash"
+    "./.envs/.local/.postgres_object_storage"
+    "./.envs/.local/.api_nlp"
 )
 
 # export variables from a single .env file

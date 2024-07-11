@@ -1,8 +1,8 @@
-"""1_create_tables
+"""1_all
 
-Revision ID: b8d6af63a427
+Revision ID: 6fafe96eb49f
 Revises: 182514e6040b
-Create Date: 2024-06-02 16:08:11.277899
+Create Date: 2024-07-10 15:14:37.114614
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b8d6af63a427'
+revision = '6fafe96eb49f'
 down_revision = '182514e6040b'
 branch_labels = None
 depends_on = None
@@ -59,9 +59,12 @@ def upgrade() -> None:
     sa.UniqueConstraint('file_storage_uuid'),
     sa.UniqueConstraint('uuid')
     )
-    op.create_table('language',
-    sa.Column('name', sa.String(length=50), nullable=False),
-    sa.Column('iso2', sa.String(length=2), nullable=False),
+    op.create_table('grammar',
+    sa.Column('name', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=False),
+    sa.Column('explanation', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=False),
+    sa.Column('examples', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::json"), nullable=False),
+    sa.Column('language_iso_2', sa.String(length=2), nullable=True),
+    sa.Column('level_cefr_code', sa.String(length=2), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('uuid', sa.UUID(as_uuid=False), server_default=sa.text('uuid_generate_v4()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -70,16 +73,8 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('uuid')
     )
-    op.create_table('level',
-    sa.Column('order', sa.Integer(), nullable=False),
-    sa.Column('cefr_code', sa.String(length=2), nullable=False),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('uuid', sa.UUID(as_uuid=False), server_default=sa.text('uuid_generate_v4()'), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('uuid')
-    )
+    op.create_index(op.f('ix_grammar_language_iso_2'), 'grammar', ['language_iso_2'], unique=False)
+    op.create_index(op.f('ix_grammar_level_cefr_code'), 'grammar', ['level_cefr_code'], unique=False)
     op.create_table('user',
     sa.Column('email', sa.String(length=50), nullable=True),
     sa.Column('first_name', sa.String(length=50), nullable=True),
@@ -103,6 +98,25 @@ def upgrade() -> None:
     op.create_index(op.f('ix_user_email'), 'user', ['email'], unique=True)
     op.create_index(op.f('ix_user_first_name'), 'user', ['first_name'], unique=False)
     op.create_index(op.f('ix_user_last_name'), 'user', ['last_name'], unique=False)
+    op.create_table('word',
+    sa.Column('characters', sa.String(length=50), nullable=False),
+    sa.Column('lemma', sa.String(length=50), nullable=False),
+    sa.Column('pos', sa.String(length=50), nullable=False),
+    sa.Column('language_iso_2', sa.String(length=2), nullable=True),
+    sa.Column('level_cefr_code', sa.String(length=2), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('uuid', sa.UUID(as_uuid=False), server_default=sa.text('uuid_generate_v4()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('is_active', sa.Boolean(), server_default=sa.text('true'), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('uuid')
+    )
+    op.create_index(op.f('ix_word_characters'), 'word', ['characters'], unique=False)
+    op.create_index(op.f('ix_word_language_iso_2'), 'word', ['language_iso_2'], unique=False)
+    op.create_index(op.f('ix_word_lemma'), 'word', ['lemma'], unique=False)
+    op.create_index(op.f('ix_word_level_cefr_code'), 'word', ['level_cefr_code'], unique=False)
+    op.create_index(op.f('ix_word_pos'), 'word', ['pos'], unique=False)
     op.create_table('celery_periodic_task',
     sa.Column('name', sa.String(length=255), nullable=True),
     sa.Column('task', sa.String(length=255), nullable=True),
@@ -130,81 +144,30 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
-    op.create_table('grammar',
-    sa.Column('name', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=False),
-    sa.Column('explanation', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=False),
-    sa.Column('examples', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::json"), nullable=False),
-    sa.Column('language_uuid', sa.UUID(as_uuid=False), nullable=False),
-    sa.Column('level_uuid', sa.UUID(as_uuid=False), nullable=False),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('uuid', sa.UUID(as_uuid=False), server_default=sa.text('uuid_generate_v4()'), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('is_active', sa.Boolean(), server_default=sa.text('true'), nullable=False),
-    sa.ForeignKeyConstraint(['language_uuid'], ['language.uuid'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['level_uuid'], ['level.uuid'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('uuid')
-    )
-    op.create_index(op.f('ix_grammar_language_uuid'), 'grammar', ['language_uuid'], unique=False)
-    op.create_index(op.f('ix_grammar_level_uuid'), 'grammar', ['level_uuid'], unique=False)
     op.create_table('phrase',
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('language_uuid', sa.UUID(as_uuid=False), nullable=False),
     sa.Column('user_uuid', sa.UUID(as_uuid=False), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('uuid', sa.UUID(as_uuid=False), server_default=sa.text('uuid_generate_v4()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['language_uuid'], ['language.uuid'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['user_uuid'], ['user.uuid'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('uuid')
     )
-    op.create_index(op.f('ix_phrase_language_uuid'), 'phrase', ['language_uuid'], unique=False)
     op.create_table('text',
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('level_uuid', sa.UUID(as_uuid=False), nullable=True),
-    sa.Column('language_uuid', sa.UUID(as_uuid=False), nullable=True),
+    sa.Column('language_iso_2', sa.String(length=2), nullable=True),
+    sa.Column('level_cefr_code', sa.String(length=2), nullable=True),
     sa.Column('user_uuid', sa.UUID(as_uuid=False), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('uuid', sa.UUID(as_uuid=False), server_default=sa.text('uuid_generate_v4()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['language_uuid'], ['language.uuid'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['level_uuid'], ['level.uuid'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['user_uuid'], ['user.uuid'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('uuid')
     )
-    op.create_table('word',
-    sa.Column('characters', sa.String(length=50), nullable=False),
-    sa.Column('language_uuid', sa.UUID(as_uuid=False), nullable=False),
-    sa.Column('level_uuid', sa.UUID(as_uuid=False), nullable=True),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('uuid', sa.UUID(as_uuid=False), server_default=sa.text('uuid_generate_v4()'), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('is_active', sa.Boolean(), server_default=sa.text('true'), nullable=False),
-    sa.ForeignKeyConstraint(['language_uuid'], ['language.uuid'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['level_uuid'], ['level.uuid'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('uuid')
-    )
-    op.create_index(op.f('ix_word_language_uuid'), 'word', ['language_uuid'], unique=False)
-    op.create_index(op.f('ix_word_level_uuid'), 'word', ['level_uuid'], unique=False)
-    op.create_table('user_text_status',
-    sa.Column('user_uuid', sa.UUID(as_uuid=False), nullable=True),
-    sa.Column('text_uuid', sa.UUID(as_uuid=False), nullable=False),
-    sa.Column('status', sa.String(length=10), nullable=True),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['text_uuid'], ['text.uuid'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['user_uuid'], ['user.uuid'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_uuid', 'text_uuid', 'status', name='unique_user_uuid_text_uuid_status')
-    )
-    op.create_index(op.f('ix_user_text_status_status'), 'user_text_status', ['status'], unique=False)
-    op.create_index(op.f('ix_user_text_status_text_uuid'), 'user_text_status', ['text_uuid'], unique=False)
     op.create_table('user_word_status_file',
     sa.Column('user_uuid', sa.UUID(as_uuid=False), nullable=True),
     sa.Column('word_uuid', sa.UUID(as_uuid=False), nullable=False),
@@ -220,53 +183,46 @@ def upgrade() -> None:
     op.create_index(op.f('ix_user_word_status_file_file_index_uuid'), 'user_word_status_file', ['file_index_uuid'], unique=False)
     op.create_index(op.f('ix_user_word_status_file_status'), 'user_word_status_file', ['status'], unique=False)
     op.create_index(op.f('ix_user_word_status_file_word_uuid'), 'user_word_status_file', ['word_uuid'], unique=False)
-    op.create_table('word_translation',
-    sa.Column('word_uuid_original', sa.UUID(as_uuid=False), nullable=False),
-    sa.Column('word_uuid_translated', sa.UUID(as_uuid=False), nullable=False),
-    sa.Column('popularity_count', sa.Integer(), nullable=False),
+    op.create_table('user_text_status',
+    sa.Column('user_uuid', sa.UUID(as_uuid=False), nullable=True),
+    sa.Column('text_uuid', sa.UUID(as_uuid=False), nullable=False),
+    sa.Column('status', sa.String(length=10), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('uuid', sa.UUID(as_uuid=False), server_default=sa.text('uuid_generate_v4()'), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('is_active', sa.Boolean(), server_default=sa.text('true'), nullable=False),
-    sa.ForeignKeyConstraint(['word_uuid_original'], ['word.uuid'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['word_uuid_translated'], ['word.uuid'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['text_uuid'], ['text.uuid'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_uuid'], ['user.uuid'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('uuid')
+    sa.UniqueConstraint('user_uuid', 'text_uuid', 'status', name='unique_user_uuid_text_uuid_status')
     )
-    op.create_index(op.f('ix_word_translation_word_uuid_original'), 'word_translation', ['word_uuid_original'], unique=False)
-    op.create_index(op.f('ix_word_translation_word_uuid_translated'), 'word_translation', ['word_uuid_translated'], unique=False)
+    op.create_index(op.f('ix_user_text_status_status'), 'user_text_status', ['status'], unique=False)
+    op.create_index(op.f('ix_user_text_status_text_uuid'), 'user_text_status', ['text_uuid'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_index(op.f('ix_word_translation_word_uuid_translated'), table_name='word_translation')
-    op.drop_index(op.f('ix_word_translation_word_uuid_original'), table_name='word_translation')
-    op.drop_table('word_translation')
+    op.drop_index(op.f('ix_user_text_status_text_uuid'), table_name='user_text_status')
+    op.drop_index(op.f('ix_user_text_status_status'), table_name='user_text_status')
+    op.drop_table('user_text_status')
     op.drop_index(op.f('ix_user_word_status_file_word_uuid'), table_name='user_word_status_file')
     op.drop_index(op.f('ix_user_word_status_file_status'), table_name='user_word_status_file')
     op.drop_index(op.f('ix_user_word_status_file_file_index_uuid'), table_name='user_word_status_file')
     op.drop_table('user_word_status_file')
-    op.drop_index(op.f('ix_user_text_status_text_uuid'), table_name='user_text_status')
-    op.drop_index(op.f('ix_user_text_status_status'), table_name='user_text_status')
-    op.drop_table('user_text_status')
-    op.drop_index(op.f('ix_word_level_uuid'), table_name='word')
-    op.drop_index(op.f('ix_word_language_uuid'), table_name='word')
-    op.drop_table('word')
     op.drop_table('text')
-    op.drop_index(op.f('ix_phrase_language_uuid'), table_name='phrase')
     op.drop_table('phrase')
-    op.drop_index(op.f('ix_grammar_level_uuid'), table_name='grammar')
-    op.drop_index(op.f('ix_grammar_language_uuid'), table_name='grammar')
-    op.drop_table('grammar')
     op.drop_table('celery_periodic_task')
+    op.drop_index(op.f('ix_word_pos'), table_name='word')
+    op.drop_index(op.f('ix_word_level_cefr_code'), table_name='word')
+    op.drop_index(op.f('ix_word_lemma'), table_name='word')
+    op.drop_index(op.f('ix_word_language_iso_2'), table_name='word')
+    op.drop_index(op.f('ix_word_characters'), table_name='word')
+    op.drop_table('word')
     op.drop_index(op.f('ix_user_last_name'), table_name='user')
     op.drop_index(op.f('ix_user_first_name'), table_name='user')
     op.drop_index(op.f('ix_user_email'), table_name='user')
     op.drop_table('user')
-    op.drop_table('level')
-    op.drop_table('language')
+    op.drop_index(op.f('ix_grammar_level_cefr_code'), table_name='grammar')
+    op.drop_index(op.f('ix_grammar_language_iso_2'), table_name='grammar')
+    op.drop_table('grammar')
     op.drop_table('file_index')
     op.drop_table('celery_solar_schedule')
     op.drop_table('celery_periodic_task_changed')

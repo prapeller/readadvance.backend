@@ -9,6 +9,9 @@ class Settings(ps.BaseSettings):
     API_READSTASH_HOST: str
     API_READSTASH_PORT: int
 
+    API_NLP_HOST: str
+    API_NLP_PORT: int
+
     PROJECT_NAME: str
     DOCS_URL: str = 'docs'
 

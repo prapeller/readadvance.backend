@@ -8,7 +8,7 @@ ENV BUILD_ENV $BUILD_ENV
 RUN apt-get update && apt-get install --no-install-recommends -y libpq-dev build-essential &&  \
     apt-get clean &&  \
     rm -rf /var/lib/apt/lists/*
-COPY ./api_readstash/requirements .
+COPY ./api_nlp/requirements .
 COPY ./.envs .
 RUN pip wheel --wheel-dir /usr/src/app/wheels -r ${BUILD_ENV}.txt
 
@@ -38,22 +38,9 @@ COPY --from=python-build-stage /usr/src/app/wheels /wheels/
 RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
     && rm -rf /wheels/
 
-COPY ./docker/api_readstash/entrypoint_api.sh /entrypoint_api.sh
-COPY ./docker/api_readstash/start_api_prod.sh /start_api_prod.sh
-COPY ./docker/api_readstash/start_api_local.sh /start_api_local.sh
-COPY ./docker/api_readstash/start_api_tests.sh /start_api_tests.sh
-COPY ./docker/api_readstash/celery/start_api_celery_worker.sh /start_api_celery_worker.sh
-COPY ./docker/api_readstash/celery/start_api_celery_flower.sh /start_api_celery_flower.sh
-COPY ./docker/api_readstash/celery/start_api_celery_beat.sh /start_api_celery_beat.sh
-RUN chmod +x /entrypoint_api.sh && \
-    chmod +x /start_api_prod.sh &&  \
-    chmod +x /start_api_local.sh &&  \
-    chmod +x /start_api_tests.sh && \
-    chmod +x /start_api_celery_worker.sh &&  \
-    chmod +x /start_api_celery_flower.sh && \
-    chmod +x /start_api_celery_beat.sh
+COPY ./docker/api_nlp /
 
-ARG APP_HOME=/app/api_readstash
+ARG APP_HOME=/app/api_nlp
 WORKDIR ${APP_HOME}
-COPY ./api_readstash ${APP_HOME}
+COPY ./api_nlp ${APP_HOME}
 ENTRYPOINT ["/entrypoint_api.sh"]

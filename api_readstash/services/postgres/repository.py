@@ -19,22 +19,18 @@ from db import (
     SessionLocalAsync, SessionLocalObjStorageAsync, SessionLocalObjStorageSync, SessionLocalReadSync,
     SessionLocalReadAsync,
 )
-from db.models.association import UserWordStatusFileAssoc, UserTextStatusAssoc, WordTranslationAssoc
+from db.models.association import UserWordStatusFileAssoc, UserTextStatusAssoc
 from db.models.file_storage import FileStorageModel, FileIndexModel
 from db.models.grammar import GrammarModel
-from db.models.language import LanguageModel
-from db.models.level import LevelModel
 from db.models.phrase import PhraseModel
 from db.models.text import TextModel
 from db.models.user import UserModel
 from db.models.word import WordModel
 
 sa_Model = typing.Union[
-    UserWordStatusFileAssoc, UserTextStatusAssoc, WordTranslationAssoc,
+    UserWordStatusFileAssoc, UserTextStatusAssoc,
     FileStorageModel, FileIndexModel,
     GrammarModel,
-    LanguageModel,
-    LevelModel,
     PhraseModel,
     TextModel,
     UserModel,
@@ -50,6 +46,7 @@ def get_serializer_data(serializer: pd_Model | dict, exclude_none: bool, exclude
     else:
         serializer_data = my_jsonable_encoder(serializer, exclude_none=exclude_none, exclude_unset=exclude_unset)
     return serializer_data
+
 
 class AbstractRepository(abc.ABC):
     @abc.abstractmethod

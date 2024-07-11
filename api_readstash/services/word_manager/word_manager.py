@@ -2,20 +2,19 @@ import fastapi as fa
 import sqlalchemy as sa
 from sqlalchemy import select
 
-from core.constants import CELERY_TASK_PRIORITIES
+from core.constants import CELERY_TASK_PRIORITIES, PARTS_OF_SPEECH
 from core.enums import ChatGPTModelsEnum, OrderEnum, UserWordStatusEnum, DBSessionModeEnum, TasksNamesEnum, \
-    ResponseDetailEnum
-from core.exceptions import AlreadyExistsException
+    ResponseDetailEnum, LanguagesISO2NamesEnum, RequestMethodsEnum
 from db.models.association import UserWordStatusFileAssoc
-from db.models.language import LanguageModel
-from db.models.level import LevelModel
 from db.models.word import WordModel
+from db.serializers.analyses import AnalysesOutSerializer
 from db.serializers.association import UserWordStatusFileCreateSerializer, UserWordStatusFileUpdateSerializer
 from db.serializers.word import WordCreateSerializer, WordUpdateSerializer, WordOrderByEnum, WordsPaginatedSerializer
-from services.chatgpt.word_identifier import get_word_level_chatgpt
+from services.inter_service_manager.inter_service_manager import InterServiceManager
 from services.postgres.repository import SqlAlchemyRepositoryAsync, sqlalchemy_repo_async_dependency, \
     sqlalchemy_repo_async_read_dependency
 from services.word_manager.celery_tasks import words_identify_level_task
+from services.word_manager.chatgpt_helpers import identify_word_level_chatgpt
 from services.word_manager.logger_setup import logger
 
 
@@ -27,18 +26,25 @@ class WordManager:
         self.repo_read = repo_read
 
     async def _filter_query(self, query: sa.Select, word_params: dict) -> sa.Select:
-        characters = word_params.get('characters')
         created_at = word_params.get('created_at')
         updated_at = word_params.get('updated_at')
-        level_uuid = word_params.get('level_uuid')
+        characters = word_params.get('characters')
+        lemma = word_params.get('lemma')
+        pos = word_params.get('pos')
+        level_cefr_code = word_params.get('level_cefr_code')
         if characters is not None:
+            assert len(characters.split(' ')) <= 1, 'only one word must be provided for search'
             query = query.filter(WordModel.characters.ilike(f'%{characters}%'))
+        if lemma is not None:
+            query = query.filter(WordModel.lemma.ilike(f'%{lemma}%'))
+        if pos is not None:
+            query = query.filter(WordModel.pos.ilike(f'%{pos}%'))
         if created_at is not None:
             query = query.filter(WordModel.created_at == created_at)
         if updated_at is not None:
             query = query.filter(WordModel.updated_at == updated_at)
-        if level_uuid is not None:
-            query = query.filter(WordModel.level_uuid == level_uuid)
+        if level_cefr_code is not None:
+            query = query.filter(WordModel.level_cefr_code == level_cefr_code)
         return query
 
     async def _paginate_query(
@@ -76,8 +82,9 @@ class WordManager:
         """list all words for particular language"""
         assert self.repo_read is not None, 'repo_read must be provided'
 
-        query = base_query if base_query is not None else select(WordModel).filter_by(
-            language_uuid=word_params.get('language_uuid'))
+        language_iso_2 = word_params.get('language_iso_2')
+
+        query = base_query if base_query is not None else select(WordModel).filter_by(language_iso_2=language_iso_2)
 
         total_count_result = await self.repo_read.session.execute(
             select(sa.func.count()).select_from(query.subquery())
@@ -110,27 +117,46 @@ class WordManager:
         """list words of user with particular language"""
         query = (
             select(WordModel)
-            .filter_by(language_uuid=word_params.get('language_uuid'))
+            .filter_by(language_iso_2=word_params.get('language_iso_2'))
             .join(UserWordStatusFileAssoc)
             .filter(sa.and_(UserWordStatusFileAssoc.user_uuid == user_uuid,
                             UserWordStatusFileAssoc.status == status))
         )
         return await self.list_filtered_paginated_words(word_params, pagination_params, order_by, order, query)
 
-    async def create_word(self,
-                          word_ser: WordCreateSerializer,
-                          gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4):
-        is_created, word = await self.repo_write.get_or_create(WordModel, word_ser)
-        if not is_created:
-            raise AlreadyExistsException(f'this word already exists in this language')
-        logger.debug(f'Created {word=}, starting celery {TasksNamesEnum.words_identify_level_task}...')
+    async def analyze_word(self, characters: str, iso2: LanguagesISO2NamesEnum) -> AnalysesOutSerializer:
+        # lemma_dict = await identify_word_lemma_chatgpt(characters, iso2)
+        inter_serv_manager = InterServiceManager()
+        url, code, resp = await inter_serv_manager.send_request_to_nlp(RequestMethodsEnum.post, 'analyses/analyze',
+                                                                       {'content': characters, 'iso2': iso2})
+        an_res = AnalysesOutSerializer.model_validate_json(resp)
+        return an_res
 
-        words_identify_level_task.apply_async(
-            args=[word.uuid, gpt_model],
-            queue='default',
-            priority=CELERY_TASK_PRIORITIES[TasksNamesEnum.words_identify_level_task]
-        )
-        return word
+    async def get_or_create_word(
+            self,
+            word_ser: WordCreateSerializer,
+            gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_3_5,
+    ) -> tuple[bool, WordModel]:
+        is_created = False
+        word = await self.repo_write.get(WordModel, characters=word_ser.characters,
+                                         language_iso_2=word_ser.language_iso_2)
+        if word is None:
+            an_res = await self.analyze_word(word_ser.characters, word_ser.language_iso_2)
+
+            word_res = an_res.words[0]
+            word_ser.lemma = word_res['lemma']
+            word_ser.pos = PARTS_OF_SPEECH[word_ser.language_iso_2][word_res['pos']]
+            word = await self.repo_write.create(WordModel, word_ser)
+            is_created = True
+
+            logger.debug(f'Created {word=}, starting celery {TasksNamesEnum.words_identify_level_task}...')
+
+            words_identify_level_task.apply_async(
+                args=[word.uuid, gpt_model],
+                queue='default',
+                priority=CELERY_TASK_PRIORITIES[TasksNamesEnum.words_identify_level_task]
+            )
+        return is_created, word
 
     async def update_word(self, word_uuid: str, word_ser: WordUpdateSerializer,
                           exclude_none=True, exclude_unset=True) -> WordModel:
@@ -144,12 +170,11 @@ class WordManager:
         logger.debug(f'removed {word_uuid=}')
         return res
 
-    async def identify_word_level(self, word: WordModel, gpt_model: ChatGPTModelsEnum) -> WordModel:
-        language = await self.repo_write.get(LanguageModel, uuid=word.language_uuid)
-        level_code = await get_word_level_chatgpt(word.characters, language.iso2, gpt_model)
-        level = await self.repo_write.get(LevelModel, cefr_code=level_code)
-        word = await self.repo_write.update(word, WordUpdateSerializer(level_uuid=level.uuid))
-        logger.debug(f'updated {word=} level to {level=}')
+    async def identify_word_level_with_chatgpt(self, word_uuid: str, gpt_model: ChatGPTModelsEnum) -> WordModel:
+        word = await self.get_word(word_uuid, session_mode=DBSessionModeEnum.rw)
+        level_cefr_code = await identify_word_level_chatgpt(word.characters, word.language_iso_2, gpt_model)
+        word = await self.repo_write.update(word, WordUpdateSerializer(level_cefr_code=level_cefr_code))
+        logger.debug(f'updated {word=} level to {level_cefr_code=}')
         return word
 
     async def add_to_users_words_with_status(self,
