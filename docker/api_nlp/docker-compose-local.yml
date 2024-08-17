@@ -5,6 +5,9 @@ services:
       args:
         - BUILD_ENV=local
     command: /start_api_local.sh
+    volumes:
+      - ../../api_nlp/staticfiles/stanza:/app/api_nlp/staticfiles/stanza
+      - ../../api_nlp/staticfiles/marianmt:/app/api_nlp/staticfiles/marianmt
     env_file:
       - ../../.envs/.docker-compose-local/.api_nlp
     expose:

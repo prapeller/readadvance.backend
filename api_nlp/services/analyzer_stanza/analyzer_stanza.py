@@ -10,7 +10,7 @@ stanza_models_path = BASE_DIR / "staticfiles/stanza"
 
 
 @singleton_decorator
-class StanzaManager:
+class AnalyzerStanza:
 
     @backoff.on_exception(backoff.constant, Exception, max_tries=10)
     def __init__(self):
@@ -38,7 +38,6 @@ class StanzaManager:
         words = []
         for sent in sents:
             for word in sent.words:
-                word_an_res = {'lemma': word.lemma.lower(), 'pos': word.pos}
+                word_an_res = {'lemma': word.lemma, 'pos': word.pos}
                 words.append(word_an_res)
         return AnalysesOutSerializer(words=words, iso2=content_ser.iso2)
-

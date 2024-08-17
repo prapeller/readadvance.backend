@@ -1,7 +1,7 @@
 import fastapi as fa
 
 from db.serializers.translations import TranslInSerializer, TranslOutSerializer
-from services.marianmt_manager.marianmt_manager import MarianMTManager
+from services.translator_marianmt.translator_marianmt import TranslatorMarianMT
 
 router = fa.APIRouter()
 
@@ -10,5 +10,5 @@ router = fa.APIRouter()
 async def translate(
         tran_ser: TranslInSerializer,
 ):
-    marian_manager = MarianMTManager()
+    marian_manager = TranslatorMarianMT()
     return await marian_manager.translate(tran_ser)

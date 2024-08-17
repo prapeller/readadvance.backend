@@ -38,10 +38,15 @@ class TextManager:
 
     async def create_text(self,
                           text_ser: TextCreateSerializer,
-                          gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4):
-        is_created, text = await self.repo_write.get_or_create(TextModel, text_ser)
-        if not is_created:
+                          gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4o):
+        text = await self.repo_write.get(TextModel,
+                                         content=text_ser.content,
+                                         language_iso_2=text_ser.language_iso_2,
+                                         user_uuid=text_ser.user_uuid,
+                                         )
+        if text is not None:
             raise AlreadyExistsException(f'this text already exists')
+        text = await self.repo_write.create(TextModel, text_ser)
         logger.debug(f'Created {text=}, starting celery {TasksNamesEnum.texts_identify_language_and_level_task}...')
 
         texts_identify_language_and_level_task.apply_async(

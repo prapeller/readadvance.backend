@@ -45,6 +45,7 @@ down-loc:
 	docker-compose -p postfix_readstash $(POSTFIX_READSTASH_BASE) $(POSTFIX_READSTASH_LOCAL) down
 	docker-compose -p postgres_readstash $(POSTGRES_READSTASH_BASE) $(POSTGRES_READSTASH_LOCAL) down
 	docker-compose -p api_readstash $(API_READSTASH_BASE) $(API_READSTASH_LOCAL) down
+	docker-compose -p api_nlp $(API_NLP_BASE) $(API_NLP_LOCAL) down
 	docker-compose -p redis_readstash $(REDIS_READSTASH_BASE) $(REDIS_READSTASH_LOCAL) down
 	docker-compose -p rabbitmq_readstash $(RABBITMQ_READSTASH_BASE) $(RABBITMQ_READSTASH_LOCAL) down
 
@@ -138,6 +139,15 @@ redis-readstash-build-loc:
 
 redis-readstash-down-loc:
 	docker-compose -p redis_readstash $(REDIS_READSTASH_BASE) $(REDIS_READSTASH_LOCAL) down
+
+
+
+rabbit-readstash-build-loc:
+	docker network create shared_network || true
+	docker-compose -p rabbitmq_readstash $(RABBITMQ_READSTASH_BASE) $(RABBITMQ_READSTASH_LOCAL) up --build -d --remove-orphans
+
+rabbit-readstash-down-loc:
+	docker-compose -p rabbitmq_readstash $(RABBITMQ_READSTASH_BASE) $(RABBITMQ_READSTASH_LOCAL) down
 
 
 

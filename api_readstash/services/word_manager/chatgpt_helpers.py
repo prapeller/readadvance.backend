@@ -9,23 +9,26 @@ async def identify_word_level_chatgpt(
         word_input: str,
         input_lang_iso2: LanguagesISO2NamesEnum,
         model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4,
-        system: LevelSystemNamesEnum = LevelSystemNamesEnum.CEFR) -> LevelCEFRCodesEnum:
+        system: LevelSystemNamesEnum = LevelSystemNamesEnum.CEFR,
+) -> LevelCEFRCodesEnum:
     response_word_par_ex_1 = """
         {
           "level_cefr_code": "..." 
         }
         """
-
-    prompt = f"""You are word level identifier.
+    valid_codes = [l for l in LevelCEFRCodesEnum]
+    prompt = f"""You are word's CEFR level identifier.
         Your response must be exactly as the following example:
         {response_word_par_ex_1}
-        valid levels: {[l for l in LevelCEFRCodesEnum]}
+        valid codes: {valid_codes}
         """
 
     chatgpt = ChatGPT(model=model, prompt=prompt)
     resp_text = await chatgpt.get_response_text(f"'{word_input=}', '{input_lang_iso2=}'")
     resp_dict = json.loads(resp_text)
-    return resp_dict['level_cefr_code']
+    level_cefr_code = resp_dict['level_cefr_code']
+    assert level_cefr_code in valid_codes, 'not valid code was identified'
+    return level_cefr_code
 
 
 async def identify_word_part_of_speech_chatgpt(

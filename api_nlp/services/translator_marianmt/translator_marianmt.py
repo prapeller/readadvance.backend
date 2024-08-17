@@ -1,13 +1,16 @@
 import backoff
-from transformers import MarianMTModel, MarianTokenizer
-
+import os
+from core.config import BASE_DIR
 from core.enums import LanguagesISO2NamesEnum
 from core.shared import singleton_decorator
 from db.serializers.translations import TranslInSerializer, TranslOutSerializer
+from transformers import MarianMTModel, MarianTokenizer
+
+os.environ['HF_HOME'] = str(BASE_DIR / 'staticfiles/marianmt')
 
 
 @singleton_decorator
-class MarianMTManager:
+class TranslatorMarianMT:
 
     @backoff.on_exception(backoff.constant, Exception, max_tries=10)
     def __init__(self):

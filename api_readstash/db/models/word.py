@@ -62,6 +62,10 @@ class WordModel(IdentifiedWithIntMixin, IdentifiedWithUuidMixin, CreatedUpdatedM
     def image_file_index(cls):
         return cls._image_file_index
 
+    @hybrid_property
+    def image_file_index_uuid(self):
+        return self._image_file_index.uuid if self._image_file_index is not None else None
+
     # AUDIO_FILE_INDEX
     @hybrid_property
     def audio_file_index(self):

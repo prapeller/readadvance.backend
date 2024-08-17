@@ -1,7 +1,7 @@
 import fastapi as fa
 
 from db.serializers.analyses import AnalysesInSerializer, AnalysesOutSerializer
-from services.stanza_manager.stanza_manager import StanzaManager
+from services.analyzer_stanza.analyzer_stanza import AnalyzerStanza
 
 router = fa.APIRouter()
 
@@ -10,5 +10,5 @@ router = fa.APIRouter()
 async def analyze_content(
         an_in_ser: AnalysesInSerializer,
 ):
-    nlp_manager = StanzaManager()
-    return await nlp_manager.analyze(an_in_ser)
+    analyzer = AnalyzerStanza()
+    return await analyzer.analyze(an_in_ser)

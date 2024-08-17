@@ -1,7 +1,6 @@
+import httpx
 import traceback
 from pathlib import Path
-
-import httpx
 
 from core.config import settings
 from core.enums import RequestMethodsEnum
@@ -21,7 +20,7 @@ class InterServiceManager:
                                    headers: dict | None = None):
         """send request with httpx client"""
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=60)) as client:
                 if method == RequestMethodsEnum.get:
                     resp = await client.get(url, params=params, headers=headers)
                 elif method == RequestMethodsEnum.delete:

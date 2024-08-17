@@ -6,7 +6,8 @@ services:
       dockerfile: ./docker/api_nlp/Dockerfile
     container_name: api_nlp
     volumes:
-      - ../../api_nlp:/app/api_nlp
+      - staticfiles_stanza:/app/api_nlp/staticfiles/stanza
+      - staticfiles_marianmt:/app/api_nlp/staticfiles/marianmt
     networks:
       - local_network_api_nlp
       - shared_network
@@ -24,3 +25,5 @@ networks:
   shared_network:
     external: true
 
+volumes:
+  staticfiles_stanza: { }

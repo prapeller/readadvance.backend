@@ -1,3 +1,5 @@
+import asyncio
+
 from core.enums import LanguagesISO2NamesEnum, UserRolesEnum
 from core.exceptions import AlreadyExistsException
 from db import SessionLocalAsync
@@ -55,18 +57,27 @@ test_texts = {
 }
 
 
-async def recreate_texts():
-    async with SessionLocalAsync() as session:
-        repo_write = SqlAlchemyRepositoryAsync(session)
-        text_manager = TextManager(repo_write)
+async def recreate_test_texts():
+    tasks = []
+    premium_user_email = test_users[1]['email']
+    for language_iso_2, content in test_texts.items():
+        tasks.append(create_test_text_task(language_iso_2, content, premium_user_email))
+    await asyncio.gather(*tasks)
 
-        premium_user_email = test_users[1]['email']
-        premium_user = await repo_write.get(UserModel, email=premium_user_email)
-        for lang_iso2, content in test_texts.items():
-            try:
-                await text_manager.create_text(TextCreateSerializer(content=content, user_uuid=premium_user.uuid))
-            except AlreadyExistsException:
-                pass
+
+async def create_test_text_task(language_iso_2: LanguagesISO2NamesEnum, content: str,
+                                user_email: str):
+    async with SessionLocalAsync() as session:
+
+        repo_write = SqlAlchemyRepositoryAsync(session)
+        repo_read = SqlAlchemyRepositoryAsync(session)
+        user = await repo_write.get(UserModel, email=user_email)
+        text_ser = TextCreateSerializer(content=content, language_iso_2=language_iso_2, user_uuid=user.uuid)
+        text_manager = TextManager(repo_write, repo_read)
+        try:
+            await text_manager.create_text(text_ser)
+        except AlreadyExistsException:
+            pass
 
 
 test_words = {
@@ -80,18 +91,27 @@ test_words = {
 }
 
 
-async def recreate_words():
+async def recreate_test_words():
+    tasks = []
+    for language_iso_2, lang_words in test_words.items():
+        for characters in lang_words:
+            tasks.append(create_test_word_task(WordCreateSerializer(characters=characters,
+                                                                    language_iso_2=language_iso_2)))
+    await asyncio.gather(*tasks)
+
+
+async def create_test_word_task(word_ser: WordCreateSerializer):
     async with SessionLocalAsync() as session:
         repo_write = SqlAlchemyRepositoryAsync(session)
         repo_read = SqlAlchemyRepositoryAsync(session)
         word_manager = WordManager(repo_write, repo_read)
-        for language_iso_2, lang_words in test_words.items():
-            for characters in lang_words:
-                await word_manager.get_or_create_word(WordCreateSerializer(characters=characters,
-                                                                           language_iso_2=language_iso_2))
+        try:
+            await word_manager.create_word(word_ser)
+        except AlreadyExistsException:
+            pass
 
 
 async def recreate_test_data():
     await recreate_test_users()
-    await recreate_texts()
-    await recreate_words()
+    await recreate_test_words()
+    await recreate_test_texts()

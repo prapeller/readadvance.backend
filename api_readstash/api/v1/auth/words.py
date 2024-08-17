@@ -61,7 +61,7 @@ async def words_create(
         current_user: UserModel = fa.Depends(current_user_dependency),
 ):
     """create word by admin"""
-    return await word_manager.get_or_create_word(word_ser, gpt_model)
+    return await word_manager.create_word(word_ser, gpt_model)
 
 
 @router.put("/identify-word-level-with-chatgpt/{word_uuid}", response_model=WordReadSerializer)

@@ -1,5 +1,4 @@
 import asyncio
-
 import backoff
 
 from celery_app import celery_app
@@ -14,10 +13,10 @@ from services.word_manager.logger_setup import logger
 
 @celery_app.task(name=TasksNamesEnum.words_identify_level_task)
 @backoff.on_exception(backoff.constant, Exception, max_tries=5)
-def words_identify_level_task(word_uuid: str, gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4):
+def words_identify_level_task(word_uuid: str, gpt_model: ChatGPTModelsEnum):
     logger.debug(f'{TasksNamesEnum.words_identify_level_task} started with {word_uuid=}')
 
-    async def identify_word_level_async(word_uuid: str, gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4):
+    async def identify_word_level_async(word_uuid: str, gpt_model: ChatGPTModelsEnum):
         async with SessionLocalAsync() as session:
             repo = SqlAlchemyRepositoryAsync(session)
             try:

@@ -5,14 +5,19 @@ from sqlalchemy import select
 from core.constants import CELERY_TASK_PRIORITIES, PARTS_OF_SPEECH
 from core.enums import ChatGPTModelsEnum, OrderEnum, UserWordStatusEnum, DBSessionModeEnum, TasksNamesEnum, \
     ResponseDetailEnum, LanguagesISO2NamesEnum, RequestMethodsEnum
+from core.exceptions import AlreadyExistsException
 from db.models.association import UserWordStatusFileAssoc
+from db.models.file_storage import FileIndexModel
 from db.models.word import WordModel
 from db.serializers.analyses import AnalysesOutSerializer
 from db.serializers.association import UserWordStatusFileCreateSerializer, UserWordStatusFileUpdateSerializer
+from db.serializers.translations import TranslWordInSerializer, TranslWordOutSerializer, TranslNlpAPIInSerializer, \
+    TranslNlpAPIOutSerializer
 from db.serializers.word import WordCreateSerializer, WordUpdateSerializer, WordOrderByEnum, WordsPaginatedSerializer
 from services.inter_service_manager.inter_service_manager import InterServiceManager
 from services.postgres.repository import SqlAlchemyRepositoryAsync, sqlalchemy_repo_async_dependency, \
     sqlalchemy_repo_async_read_dependency
+from services.translator.translator import translate_with_nlp_api
 from services.word_manager.celery_tasks import words_identify_level_task
 from services.word_manager.chatgpt_helpers import identify_word_level_chatgpt
 from services.word_manager.logger_setup import logger
@@ -124,25 +129,53 @@ class WordManager:
         )
         return await self.list_filtered_paginated_words(word_params, pagination_params, order_by, order, query)
 
-    async def analyze_word(self, characters: str, iso2: LanguagesISO2NamesEnum) -> AnalysesOutSerializer:
-        # lemma_dict = await identify_word_lemma_chatgpt(characters, iso2)
+    async def analyze_word_with_nlp_api(
+            self,
+            characters: str,
+            iso2: LanguagesISO2NamesEnum,
+    ) -> AnalysesOutSerializer:
+
         inter_serv_manager = InterServiceManager()
         url, code, resp = await inter_serv_manager.send_request_to_nlp(RequestMethodsEnum.post, 'analyses/analyze',
                                                                        {'content': characters, 'iso2': iso2})
         an_res = AnalysesOutSerializer.model_validate_json(resp)
         return an_res
 
+    async def create_word(
+            self,
+            word_ser: WordCreateSerializer,
+            gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4o,
+    ):
+        word = await self.repo_write.get(WordModel, characters=word_ser.characters,
+                                         language_iso_2=word_ser.language_iso_2)
+        if word is not None:
+            raise AlreadyExistsException
+        else:
+            an_res = await self.analyze_word_with_nlp_api(word_ser.characters, word_ser.language_iso_2)
+            word_res = an_res.words[0]
+            word_ser.lemma = word_res['lemma']
+            word_ser.pos = PARTS_OF_SPEECH[word_ser.language_iso_2][word_res['pos']]
+            word = await self.repo_write.create(WordModel, word_ser)
+
+            logger.debug(f'Created {word=}, starting celery {TasksNamesEnum.words_identify_level_task}...')
+
+            words_identify_level_task.apply_async(
+                args=[word.uuid, gpt_model],
+                queue='default',
+                priority=CELERY_TASK_PRIORITIES[TasksNamesEnum.words_identify_level_task]
+            )
+            return word
+
     async def get_or_create_word(
             self,
             word_ser: WordCreateSerializer,
-            gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_3_5,
+            gpt_model: ChatGPTModelsEnum = ChatGPTModelsEnum.gpt_4o,
     ) -> tuple[bool, WordModel]:
         is_created = False
         word = await self.repo_write.get(WordModel, characters=word_ser.characters,
                                          language_iso_2=word_ser.language_iso_2)
         if word is None:
-            an_res = await self.analyze_word(word_ser.characters, word_ser.language_iso_2)
-
+            an_res = await self.analyze_word_with_nlp_api(word_ser.characters, word_ser.language_iso_2)
             word_res = an_res.words[0]
             word_ser.lemma = word_res['lemma']
             word_ser.pos = PARTS_OF_SPEECH[word_ser.language_iso_2][word_res['pos']]
@@ -193,6 +226,53 @@ class WordManager:
         else:
             await self.repo_write.update(assoc, UserWordStatusFileUpdateSerializer(status=status))
         return {"detail": ResponseDetailEnum.ok}
+
+    async def get_analyzed_word_translation_with_nlp_api(
+            self,
+            word_transl_in_ser: TranslWordInSerializer,
+    ) -> TranslWordOutSerializer:
+
+        word_image_file_index_uuid = None
+
+        word_transl_out: TranslNlpAPIOutSerializer = await translate_with_nlp_api(
+            TranslNlpAPIInSerializer(text_input=word_transl_in_ser.word_input,
+                                     input_lang_iso2=word_transl_in_ser.input_lang_iso2,
+                                     target_lang_iso2=word_transl_in_ser.target_lang_iso2))
+        word_output = word_transl_out.text_output
+
+        an_res: AnalysesOutSerializer = await self.analyze_word_with_nlp_api(characters=word_transl_in_ser.word_input,
+                                                                             iso2=word_transl_in_ser.input_lang_iso2)
+        word_pos = PARTS_OF_SPEECH[word_transl_in_ser.input_lang_iso2][an_res.words[0]['pos']]
+        lemma = an_res.words[0]['lemma']
+        lemma_word = await self.repo_write.get(WordModel, pos=word_pos, characters=lemma)
+        if lemma_word is None:
+            lemma_word = await self.create_word(WordCreateSerializer(
+                characters=lemma, lemma=lemma, pos=word_pos, language_iso_2=word_transl_in_ser.input_lang_iso2
+            ))
+
+        word_image_assoc = await self.repo_write.get(UserWordStatusFileAssoc, user_uuid=None, word_uuid=lemma_word.uuid)
+        if word_image_assoc is not None:
+            word_image_file_index = await self.repo_write.get(FileIndexModel, uuid=word_image_assoc.file_index_uuid)
+            if word_image_file_index is not None:
+                word_image_file_index_uuid = word_image_file_index.uuid
+
+        context_transl_out: TranslNlpAPIOutSerializer = await translate_with_nlp_api(
+            TranslNlpAPIInSerializer(text_input=word_transl_in_ser.context_input,
+                                     input_lang_iso2=word_transl_in_ser.input_lang_iso2,
+                                     target_lang_iso2=word_transl_in_ser.target_lang_iso2)
+        )
+        context_output = context_transl_out.text_output
+
+        return TranslWordOutSerializer(
+            word_input=word_transl_in_ser.word_input,
+            word_output=word_output,
+            word_pos=word_pos,
+            context_output=context_output,
+            input_lang_iso2=word_transl_in_ser.input_lang_iso2,
+            target_lang_iso2=word_transl_in_ser.target_lang_iso2,
+            lemma_word=lemma_word,
+            word_image_file_index_uuid=word_image_file_index_uuid,
+        )
 
 
 async def word_manager_dependency(

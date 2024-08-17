@@ -1,25 +1,23 @@
-from contextlib import asynccontextmanager
-
 import fastapi as fa
 import uvicorn
-from fastapi.responses import ORJSONResponse
-
 from api.v1.internal import (
     analyses as v1_internal_analyses,
     translations as v1_internal_translations,
 )
+from contextlib import asynccontextmanager
 from core.config import settings
 from core.middlewares import CatchAssertionErrorMiddleware
 from core.security import VerifyHMACMiddleware
-from services.marianmt_manager.marianmt_manager import MarianMTManager
-from services.stanza_manager.stanza_manager import StanzaManager
+from fastapi.responses import ORJSONResponse
+from services.analyzer_stanza.analyzer_stanza import AnalyzerStanza
+from services.translator_marianmt.translator_marianmt import TranslatorMarianMT
 
 
 @asynccontextmanager
 async def lifespan(app: fa.FastAPI):
     # startup
-    StanzaManager()
-    MarianMTManager()
+    AnalyzerStanza()
+    TranslatorMarianMT()
 
     # shutdown
     yield

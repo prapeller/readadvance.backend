@@ -1,7 +1,6 @@
-from contextlib import asynccontextmanager
-
 import fastapi as fa
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi.responses import ORJSONResponse
 
 from api.v1.auth import (
@@ -14,7 +13,7 @@ from api.v1.auth import (
 from api.v1.public import (
     languages as v1_public_languages,
     words as v1_public_words,
-    translations as v1_public_translations,
+    # translations as v1_public_translations,
 )
 from core import config
 from core.config import settings
@@ -65,7 +64,7 @@ v1_router_auth.include_router(v1_auth_translations.router, prefix='/translations
 v1_router_public = fa.APIRouter(prefix='/public')
 v1_router_public.include_router(v1_public_languages.router, prefix='/languages', tags=['languages'])
 v1_router_public.include_router(v1_public_words.router, prefix='/words', tags=['words'])
-v1_router_public.include_router(v1_public_translations.router, prefix='/translations', tags=['translations'])
+# v1_router_public.include_router(v1_public_translations.router, prefix='/translations', tags=['translations'])
 
 app.include_router(v1_router_auth, prefix="/api/v1")
 app.include_router(v1_router_public, prefix="/api/v1")
