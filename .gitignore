@@ -155,6 +155,7 @@ dmypy.json
 api_readstash/staticfiles/backups/*
 api_readstash/staticfiles/object_storage_backups/*
 api_nlp/staticfiles/stanza/*
+api_nlp/staticfiles/marianmt/*
 
 # Envs
 .envs/.docker-compose-local*
